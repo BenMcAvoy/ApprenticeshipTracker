@@ -24,6 +24,7 @@ services:
       FIREBASE_APP_ID: ${FIREBASE_APP_ID:-}
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
       LEGACY_OWNER_EMAIL: ${LEGACY_OWNER_EMAIL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - data:/data
     ports:

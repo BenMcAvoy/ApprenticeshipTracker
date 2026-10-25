@@ -5,6 +5,9 @@ import { type Notification, sendNtfy } from "./ntfy.ts";
 import { isSignedIn } from "./openai-auth.ts";
 import { scanAndSave, SCAN_VERSION } from "./scan-job.ts";
 import { getLegacyRecheckState, prepareLegacyRecheck, runLegacyRecheck } from "./scan-backfill.ts";
+import { createLogger } from "./logger.ts";
+
+const log = createLogger("scheduler");
 
 const CONCURRENCY = 3;
 
@@ -118,7 +121,7 @@ export async function runDailyScan(trigger: "schedule" | "manual"): Promise<void
     try {
       await sendNtfy(settings.ntfyServer, settings.ntfyTopic, n);
     } catch (error) {
-      console.error("[scheduler] ntfy failed:", (error as Error).message);
+      log.error({ err: error }, "ntfy failed");
       return (error as Error).message;
     }
   };
@@ -134,7 +137,7 @@ export async function runDailyScan(trigger: "schedule" | "manual"): Promise<void
     const companies = await prisma.company.findMany({ orderBy: { name: "asc" } });
     jobState.total = companies.length;
     const before = new Map(companies.map((c) => [c.id, snapshot(c)]));
-    console.log(`[scheduler] ${trigger} scan of ${companies.length} companies starting`);
+    log.info({ trigger, companies: companies.length }, "Scan starting");
 
     const queue = [...companies];
     const worker = async () => {
@@ -175,7 +178,7 @@ export async function runLegacyRecheckJob(): Promise<void> {
       onProgress: (state) => { jobState.done = state.total - state.remaining; jobState.total = state.total; },
     });
   } catch (error) {
-    console.error("[scanner] Legacy recheck interrupted; checkpoint retained:", error instanceof Error ? error.message : "unknown error");
+    log.error({ err: error }, "Legacy recheck interrupted; checkpoint retained");
   } finally {
     jobState.running = false;
   }
@@ -249,7 +252,7 @@ export async function runClosingReminders(): Promise<{ sent: number; result: str
         await sleep(700); // stay well within ntfy's rate limits and keep the phone buzzing in order
       } catch (error) {
         failure = (error as Error).message;
-        console.error("[reminders] ntfy failed:", failure);
+        log.error({ err: failure }, "Closing reminder ntfy failed");
         break;
       }
     }
@@ -290,7 +293,7 @@ async function tick() {
     const next = nextRunAt(settings);
     if (next && next <= new Date()) await runDailyScan("schedule");
   } catch (error) {
-    console.error("[scheduler] tick failed:", error);
+    log.error({ err: error }, "Scheduler tick failed");
   }
 }
 
@@ -303,5 +306,5 @@ export async function startScheduler() {
   setInterval(tick, 60_000);
   // Catch up shortly after startup if today's run was missed.
   setTimeout(tick, 15_000);
-  console.log("Daily scan scheduler started");
+  log.info("Daily scan scheduler started");
 }

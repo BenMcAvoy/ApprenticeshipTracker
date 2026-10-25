@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { prisma } from "./db.ts";
 import type { PrismaClient } from "./generated/prisma/client.ts";
+import { createLogger } from "./logger.ts";
 
 export const LEGACY_MIGRATION_KEY = "legacy-personal-data-v1";
 const ADMIN_BOOTSTRAP_KEY = "initial-admin-v1";
@@ -66,9 +67,9 @@ export async function bootstrapUsers(db: PrismaClient = prisma, env: BootstrapEn
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const result = await bootstrapUsers();
-    console.log(`[accounts] Bootstrap: ${result.reason}; initial admin ${result.adminCreated ? "created" : "unchanged"}`);
+    createLogger("accounts").info({ reason: result.reason, adminCreated: result.adminCreated }, "Bootstrap complete");
   } catch (error) {
-    console.error("[accounts] Bootstrap failed; startup stopped:", error);
+    createLogger("accounts").error({ err: error }, "Bootstrap failed; startup stopped");
     process.exitCode = 1;
   } finally {
     await prisma.$disconnect();

@@ -1,4 +1,5 @@
 import type { Company, PrismaClient } from "./generated/prisma/client.ts";
+import { createLogger } from "./logger.ts";
 import { runScan, type Verdict } from "./scan.ts";
 import { saveScanTrace } from "./scan-trace.ts";
 import { vacancyIdentity } from "./vacancy-identity.ts";
@@ -50,7 +51,7 @@ export async function persistVerdict(prisma: PrismaClient, company: Company, ver
     } });
   });
   if (!superseded) await saveScanTrace({ id: company.id, name: company.name }, verdict).catch((error: unknown) => {
-    console.error(`[scan] Could not save research trace for company ${company.id}:`, error instanceof Error ? error.message : "unknown error");
+    createLogger("scan").warn({ companyId: company.id, err: error }, "Could not save research trace");
   });
   return result;
 }
