@@ -41,7 +41,7 @@ export function AddCompaniesDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" size="sm" className="h-11 md:h-7" aria-label="Add companies" />}>
-        <Plus /> Add<span className="hidden md:inline"> companies</span>
+        <Plus /><span className="hidden md:inline">Add companies</span>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

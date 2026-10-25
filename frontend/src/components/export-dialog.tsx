@@ -23,8 +23,8 @@ export function ExportDialog({ companies }: { companies: CompanyRow[] }) {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="h-11 md:h-7" />}>
-        <ListChecks /> Export<span className="hidden md:inline"> list</span>
+      <DialogTrigger render={<Button variant="outline" size="sm" className="h-11 md:h-7" aria-label="Export list" />}>
+        <ListChecks /><span className="hidden md:inline">Export list</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>

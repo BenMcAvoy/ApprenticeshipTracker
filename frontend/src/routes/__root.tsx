@@ -21,7 +21,7 @@ function Layout() {
         <SidebarInset className="h-dvh min-w-0 overflow-hidden">
           <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
             <SidebarTrigger className="size-11 md:size-7" />
-            <h1 className="text-sm font-medium">{titles[pathname] ?? ""}</h1>
+            <h1 className="hidden text-sm font-medium md:block">{titles[pathname] ?? ""}</h1>
             <div id="header-actions" className="ml-auto flex min-w-0 items-center gap-2" />
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto">

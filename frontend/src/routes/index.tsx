@@ -1,11 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ChevronDown, PanelBottom, Radar } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { listingKey } from "backend/listing-key";
 import { useAuth } from "@/components/auth-provider";
 import { useAppliedListings } from "@/hooks/use-applied-listings";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { AddCompaniesDialog } from "@/components/add-companies-dialog";
 import { CompanyCard } from "@/components/company-card";
 import { ExportDialog } from "@/components/export-dialog";
@@ -46,13 +45,8 @@ export const Route = createFileRoute("/")({
 });
 
 const CONCURRENCY = 3;
-function MobileActions({ children }: { children: ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-2">{children}</div>;
-}
 
 function Home() {
-  const isMobile = useIsMobile();
-  const Actions = isMobile ? MobileActions : HeaderActions;
   const { isAdmin } = useAuth();
   const { applied, mark } = useAppliedListings();
   const [lastMarked, setLastMarked] = useState<{ companyId: number; listingKey: string; title: string } | null>(null);
@@ -176,10 +170,10 @@ function Home() {
   return (
     <div className="@container flex flex-col gap-4">
       {scanAccess.dialog}
-      <Actions>
+      <HeaderActions>
         {isAdmin && scans.length > 0 && (
-          <Button variant="ghost" size="sm" className="h-11 md:h-7" onClick={() => setPanelOpen((o) => !o)}>
-            <PanelBottom /> Scans
+          <Button variant="ghost" size="sm" className="h-11 md:h-7" aria-label="Scans" title="Scans" onClick={() => setPanelOpen((o) => !o)}>
+            <PanelBottom /><span className="hidden md:inline">Scans</span>
           </Button>
         )}
         {list.length > 0 && <ExportDialog companies={visible} />}
@@ -187,9 +181,9 @@ function Home() {
           pending={importCompanies.isPending}
           onAdd={(companies) => importCompanies.mutateAsync({ companies })}
         />
-        <div className="ml-auto flex">
+        <div className="flex">
           <Button size="sm" className="h-11 rounded-r-none md:h-7" aria-label="Scan all companies" disabled={!list.length || busy} onClick={() => runScans(list)}>
-            <Radar /> <span className="md:hidden">Scan</span><span className="hidden md:inline">Scan all</span>
+            <Radar /><span className="hidden md:inline">Scan all</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -207,7 +201,7 @@ function Home() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div></>}
-      </Actions>
+      </HeaderActions>
 
       {isAdmin && <ScanPanel scans={scans} open={panelOpen} onClose={() => setPanelOpen(false)} />}
 
