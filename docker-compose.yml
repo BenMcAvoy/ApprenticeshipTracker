@@ -1,0 +1,50 @@
+# Apprentice Scanner
+#
+#   docker compose up -d --build        then open http://localhost:8080
+#
+# Sign in with ChatGPT from Settings. The login callback uses http://localhost:1455, so open the app on the
+# same machine that runs Docker (or forward port 1455 if it runs remotely).
+#
+# Data (database, your CV, ChatGPT login) lives in the "data" volume and survives rebuilds.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    init: true # reap Chromium's child processes
+    shm_size: 1gb # Chromium needs more than Docker's 64 MB default /dev/shm
+    environment:
+      # The daily scan and closing alerts run at the time you set in Settings, in this time zone.
+      TZ: ${TZ:-Europe/London}
+      NODE_ENV: production
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_API_KEY: ${FIREBASE_API_KEY:-}
+      FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}
+      FIREBASE_APP_ID: ${FIREBASE_APP_ID:-}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
+      LEGACY_OWNER_EMAIL: ${LEGACY_OWNER_EMAIL:-}
+    volumes:
+      - data:/data
+    ports:
+      - "1455:1455" # OpenAI sign-in callback
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/ping').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:80"
+
+volumes:
+  data:
