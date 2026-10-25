@@ -1,0 +1,42 @@
+{
+  "name": "backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/router.ts",
+    "./closing": "./src/closing.ts",
+    "./listing-key": "./src/listing-key.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@openai-oauth/ai-sdk": "^2.0.0",
+    "@openai-oauth/local": "^2.0.0",
+    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@trpc/server": "^11.19.0",
+    "ai": "^6.0.315",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "jose": "^6.2.13",
+    "mammoth": "^1.13.0",
+    "openai-oauth": "^2.0.0",
+    "playwright": "^1.64.1",
+    "unpdf": "^1.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/node": "^24.19.2",
+    "prisma": "^7.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3"
+  }
+}

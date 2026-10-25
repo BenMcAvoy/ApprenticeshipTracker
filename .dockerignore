@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/scan-traces
+**/.git
+
+# Never bake local data or credentials into an image
+**/*.db
+**/*.db-journal
+**/.env
+**/.openai-auth.json
+
+# Regenerated inside the image
+backend/src/generated
+frontend/src/routeTree.gen.ts.bak
