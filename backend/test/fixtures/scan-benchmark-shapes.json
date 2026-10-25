@@ -1,0 +1,19 @@
+{
+  "notice": "All URLs, page text, roles, and outcomes in this fixture are synthetic representative examples. They have not been live verified.",
+  "shapes": [
+    { "id": "official-brand", "employer": "Siemens", "url": "https://careers.siemens.com/jobs/48291", "shape": "official brand domain" },
+    { "id": "workday", "employer": "Northstar Energy", "url": "https://northstar.wd3.myworkdayjobs.com/en-US/External/job/UK/Software-Degree-Apprentice_R104", "shape": "exact route linked from employer domain" },
+    { "id": "oracle", "employer": "Cedar Bank", "url": "https://cedar.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/job/441", "shape": "exact route linked from employer domain" },
+    { "id": "smartrecruiters", "employer": "Acme Robotics", "url": "https://jobs.smartrecruiters.com/AcmeRobotics/7440000123", "shape": "exact route linked from employer domain" },
+    { "id": "greenhouse", "employer": "Fabrikam", "url": "https://boards.greenhouse.io/fabrikam/jobs/1001", "shape": "exact route linked from employer domain" },
+    { "id": "legal-entity", "employer": "Siemens", "url": "https://jobs.siemens.com/job/990", "shape": "content names Siemens Mobility Limited" },
+    { "id": "closed", "employer": "Siemens", "url": "https://careers.siemens.com/apprenticeships/software", "shape": "explicitly closed programme" },
+    { "id": "upcoming", "employer": "Siemens", "url": "https://careers.siemens.com/apprenticeships/software", "shape": "upcoming intake with stated season" },
+    { "id": "expired", "employer": "Siemens", "url": "https://jobs.siemens.com/jobs/old", "shape": "past closing date" },
+    { "id": "talent-pool", "employer": "Siemens", "url": "https://jobs.siemens.com/jobs/talent-pool", "shape": "register-interest page" },
+    { "id": "blocked", "employer": "Siemens", "url": "https://careers.siemens.com/jobs", "shape": "access denied" },
+    { "id": "conflict-live", "employer": "Siemens", "url": "https://jobs.siemens.com/jobs/active", "shape": "live role conflicts with zero-results page" },
+    { "id": "arbitrary-ats", "employer": "Siemens", "url": "https://jobs.example/jobs/123", "shape": "unlinked third-party route" },
+    { "id": "unknown-alias", "employer": "Northstar Energy", "url": "https://northstar-careers.example/jobs/1", "shape": "unverified alias domain" }
+  ]
+}

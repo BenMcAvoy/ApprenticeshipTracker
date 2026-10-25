@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  authSubject  String?   @unique
+  name         String?
+  role         String    @default("MEMBER")
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+  profile      UserProfile?
+  applications UserApplication[]
+  applied      AppliedListing[]
+}
+
+model UserProfile {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cvText    String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+model UserApplication {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId    Int
+  listingUrl   String
+  listingTitle String
+  fitSummary   String
+  tailoredCv   String
+  coverLetter  String
+  changes      String   @default("[]")
+  gaps         String   @default("[]")
+  audit        String   @default("[]")
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, companyId, listingUrl])
+}
+
+model AppliedListing {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId    Int
+  listingKey   String
+  listingTitle String
+  listingUrl   String?
+  appliedAt    DateTime @default(now())
+
+  @@unique([userId, companyId, listingKey])
+}
+
+/// Completed data migrations; legacy tables remain available for rollback.
+model MigrationMetadata {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+}
+
+model Company {
+  id            Int       @id @default(autoincrement())
+  name          String    @unique
+  createdAt     DateTime  @default(now())
+  careersUrl    String?
+  // unscanned | open | upcoming | closed | none | unclear (couldn't check) | error
+  status        String    @default("unscanned")
+  summary       String?
+  // JSON: { title: string; url?: string }[]
+  listings      String    @default("[]")
+  // JSON: { url: string; quote: string }[] — verbatim proof from pages the agent read
+  evidence      String    @default("[]")
+  // number of pages / searches the agent consulted
+  checked       Int       @default(0)
+  lastScannedAt DateTime?
+  // Last confirmed result remains visible if a later attempt is inconclusive.
+  lastConfirmedAt DateTime?
+  lastAttemptStatus String?
+  lastAttemptSummary String?
+  // Evidence policy used for the saved confirmed result (legacy results are 0).
+  scanVersion Int @default(0)
+  coverageComplete Boolean @default(false)
+}
+
+/// Legacy single-user CV, retained as a migration/rollback source.
+model Profile {
+  id        Int      @id
+  cvText    String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+/// Legacy single-user applications, retained as migration/rollback sources.
+model Application {
+  id           Int      @id @default(autoincrement())
+  companyId    Int
+  listingUrl   String
+  listingTitle String
+  fitSummary   String
+  tailoredCv   String
+  coverLetter  String
+  // JSON: { section: string; kind: string; before: string | null; after: string; reason: string }[]
+  changes      String   @default("[]")
+  // JSON: { requirement: string; suggestion: string }[]
+  gaps         String   @default("[]")
+  // JSON: string[] — problems the verification pass found and fixed
+  audit        String   @default("[]")
+  createdAt    DateTime @default(now())
+
+  @@unique([companyId, listingUrl])
+}
+
+/// Global admin-managed daily rescan + ntfy notification settings.
+model Settings {
+  id                 Int       @id
+  dailyScanEnabled   Boolean   @default(true)
+  // local time of day, "HH:MM"
+  dailyScanTime      String    @default("07:00")
+  ntfyServer         String    @default("https://ntfy.sh")
+  ntfyTopic          String    @default("benmcavoy_apprenticeships")
+  // when the schedule was last (re)configured; time slots before this never trigger a catch-up run
+  scheduleSetAt      DateTime  @default(now())
+  lastDailyRunAt     DateTime?
+  lastDailyRunResult String?
+  closingRemindersEnabled Boolean @default(true)
+  // warn when a listing closes within this many days
+  closingReminderDays     Int       @default(7)
+  lastRemindersAt         DateTime?
+  lastRemindersResult     String?
+}
