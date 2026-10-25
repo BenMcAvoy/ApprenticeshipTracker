@@ -11,13 +11,9 @@ function Settings() {
   const { isAdmin } = useAuth();
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">Your CV is saved to your account. Track submitted roles in Applications.</p>
       <CvCard />
       {isAdmin && <>
-        <div className="mt-2 border-t pt-5">
-          <h2 className="text-sm font-medium">Administration</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Shared catalogue, scan schedule and ChatGPT connection for the service.</p>
-        </div>
+        <h2 className="mt-4 text-sm font-medium text-muted-foreground">Admin</h2>
         <DailyScanCard />
         <StatusCard />
         <AdminUsersCard />

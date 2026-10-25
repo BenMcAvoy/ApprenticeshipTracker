@@ -51,8 +51,8 @@ const RESULT: Record<ResultStatus, { label: string; variant: "default" | "second
   open: { label: "Open", variant: "default" },
   upcoming: { label: "Opening soon", variant: "default" },
   closed: { label: "Closed", variant: "secondary" },
-  none: { label: "None found", variant: "secondary" },
-  unclear: { label: "Couldn't check", variant: "outline" },
+  none: { label: "No roles", variant: "secondary" },
+  unclear: { label: "Unclear", variant: "outline" },
   error: { label: "Error", variant: "destructive" },
 };
 
@@ -174,7 +174,7 @@ export function ScanPanel({
           Scans
         </div>
         <span className="text-xs text-muted-foreground">
-          {finished.length}/{scans.length} {running ? "· scanning…" : "· done"}
+          {finished.length}/{scans.length}{running ? "" : " done"}
         </span>
         <div className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-muted md:block">
           <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${overall}%` }} />

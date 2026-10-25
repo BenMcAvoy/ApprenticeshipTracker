@@ -11,7 +11,7 @@ function Layout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, loading } = useAuth();
 
-  if (loading) return <div role="status" className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">Loading your account…</div>;
+  if (loading) return <div role="status" className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">Loading…</div>;
   if (!user) return <SignInLanding />;
 
   return (

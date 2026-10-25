@@ -60,7 +60,7 @@ function Actions({ text, makeDocx, docxName, plainName }: { text: string; makeDo
           setTimeout(() => setCopied(false), 1500);
         }}
       >
-        {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy text"}
+        {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy"}
       </Button>
       <Button variant="ghost" size="sm" onClick={() => saveBlob(new Blob([text], { type: "text/plain" }), plainName)}>
         <Download /> {plainName.split(".").pop()}
@@ -164,26 +164,21 @@ export function ApplicationDialog({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>{listing.title}</DialogTitle>
-          <DialogDescription>{company} — tailored CV and cover letter</DialogDescription>
+          <DialogDescription>{company}</DialogDescription>
         </DialogHeader>
 
         {generate.isPending && (
           <div className="flex flex-col items-center gap-3 py-12 text-sm text-muted-foreground">
             <Loader2 className="size-6 animate-spin" />
-            <p>Reading the vacancy, tailoring your CV, then fact-checking it against your original…</p>
-            <p className="text-xs">This usually takes 30–90 seconds.</p>
+            <p>Tailoring… about a minute.</p>
           </div>
         )}
 
         {saved.isError && <p role="alert" className="text-sm text-destructive">{saved.error.message}</p>}
         {!generate.isPending && !app && saved.isSuccess && (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="max-w-md text-sm text-muted-foreground">
-              This reads the actual vacancy, then rewrites your CV to fit it and drafts a cover letter. You'll see exactly what changed and why.
-              Nothing is added that isn't in your CV.
-            </p>
+          <div className="flex justify-center py-8">
             <Button onClick={() => generate.mutate(input)}>
-              <Sparkles /> Tailor my application
+              <Sparkles /> Tailor
             </Button>
           </div>
         )}
@@ -197,10 +192,10 @@ export function ApplicationDialog({
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="changes">Changes ({changes.length})</TabsTrigger>
                 <TabsTrigger value="cv">CV</TabsTrigger>
-                <TabsTrigger value="letter">Cover letter</TabsTrigger>
+                <TabsTrigger value="letter">Letter</TabsTrigger>
               </TabsList>
               <Button variant="ghost" size="sm" onClick={() => generate.mutate(input)}>
-                <RefreshCw /> Regenerate
+                <RefreshCw /> Redo
               </Button>
             </div>
 
@@ -210,13 +205,11 @@ export function ApplicationDialog({
               <div className="flex items-start gap-2 rounded-lg border p-3">
                 <ShieldCheck className="mt-0.5 size-4 shrink-0 text-green-600" />
                 <div className="flex flex-col gap-1">
-                  <span className="font-medium">
-                    {audit.remaining.length ? "Fact-check found issues to review" : "Fact-checked against your original CV"}
-                  </span>
+                  <span className="font-medium">{audit.remaining.length ? "Check flagged items" : "Fact-checked"}</span>
                   <span className="text-muted-foreground">
                     {audit.fixed.length > 0
-                      ? `${audit.fixed.length} unsupported statement${audit.fixed.length === 1 ? " was" : "s were"} found and removed.`
-                      : audit.remaining.length === 0 && "No unsupported claims were found."}
+                      ? `${audit.fixed.length} removed`
+                      : audit.remaining.length === 0 && "Nothing unsupported"}
                   </span>
                   {audit.fixed.map((f, i) => (
                     <span key={i} className="text-xs text-muted-foreground">
@@ -234,11 +227,8 @@ export function ApplicationDialog({
               {gaps.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <h3 className="flex items-center gap-2 font-medium">
-                    <Lightbulb className="size-4 text-amber-500" /> Gaps to consider
+                    <Lightbulb className="size-4 text-amber-500" /> Gaps
                   </h3>
-                  <p className="text-xs text-muted-foreground">
-                    The vacancy wants these but your CV doesn't show them. They're not in the documents. Only add them if they're true.
-                  </p>
                   {gaps.map((g, i) => (
                     <div key={i} className="rounded-lg border p-3">
                       <p className="font-medium">{g.requirement}</p>

@@ -10,7 +10,6 @@ export function OpportunityRow({ listing, applied, saving, marking, canTailor, t
   onTailor: () => void; onAppliedChange: () => void;
 }) {
   const deadline = listingClosing(listing);
-  // One quiet metadata line: location, then the deadline (the only part that carries urgency colour).
   const closing = deadline.text.replace(/TODAY|TOMORROW/g, (word) => word.toLowerCase());
   const deadlineTone = cn(deadline.tone === "urgent" && "font-medium text-destructive", deadline.tone === "warn" && "text-amber-700 dark:text-amber-400");
 
@@ -41,7 +40,7 @@ export function OpportunityRow({ listing, applied, saving, marking, canTailor, t
       <div className="flex flex-wrap items-center gap-2">
         {canTailor && listing.url && (
           <Button size="sm" variant="ghost" className="h-9 px-2 text-xs" disabled={tailorDisabled} title={tailorHint} aria-label={`Tailor CV for ${listing.title}`} onClick={onTailor}>
-            <Sparkles /> Tailor CV
+            <Sparkles /> Tailor
           </Button>
         )}
         <Button
@@ -51,10 +50,10 @@ export function OpportunityRow({ listing, applied, saving, marking, canTailor, t
           disabled={marking}
           aria-busy={saving || undefined}
           onClick={onAppliedChange}
-          aria-label={`${applied ? "Undo applied for" : "Mark as applied to"} ${listing.title}`}
+          aria-label={`${applied ? "Undo applied for" : "Mark as applied for"} ${listing.title}`}
         >
           {saving ? <LoaderCircle className="animate-spin" /> : applied ? <Undo2 /> : <Check />}
-          {saving ? "Saving…" : applied ? "Undo applied" : "Mark as applied"}
+          {saving ? "Saving…" : applied ? "Undo" : "Mark applied"}
         </Button>
       </div>
     </li>

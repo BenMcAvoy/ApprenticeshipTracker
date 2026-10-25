@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTRPC } from "@/lib/trpc";
 
 export function StatusCard() {
@@ -43,57 +43,40 @@ export function StatusCard() {
     if (signedIn || status.data?.error) setLoggingIn(false);
   }, [signedIn, status.data?.error]);
 
+  const errors = [ping.error, login.error, check.error, describe.error].flatMap((error) => (error ? [error.message] : []));
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Service connections</CardTitle>
-        <CardDescription>The shared ChatGPT connection powers scans and members' tailored applications.</CardDescription>
+      <CardHeader className="flex-row items-center justify-between gap-3">
+        <CardTitle>ChatGPT</CardTitle>
+        {signedIn ? <Badge>Connected</Badge> : <Badge variant="secondary">Not connected</Badge>}
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span>Backend → DB</span>
-          {ping.isPending && <Badge variant="secondary">pinging…</Badge>}
-          {ping.isError && <Badge variant="destructive">down</Badge>}
-          {ping.data && <Badge>{ping.data.db}</Badge>}
-        </div>
-        <div className="flex items-center gap-2">
-          <span>ChatGPT</span>
+
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           {signedIn ? (
             <>
-              <Badge>signed in</Badge>
-              <Button variant="outline" size="sm" onClick={() => check.mutate()}>
-                Test AI
+              <Button variant="outline" size="sm" disabled={check.isPending} onClick={() => check.mutate()}>
+                {check.isPending ? "Testing…" : "Test"}
               </Button>
-              <input
-                ref={imageInput}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => onImage(e.target.files?.[0])}
-              />
-              <Button variant="outline" size="sm" onClick={() => imageInput.current?.click()}>
-                Test image
+              <input ref={imageInput} type="file" accept="image/*" className="hidden" onChange={(e) => onImage(e.target.files?.[0])} />
+              <Button variant="outline" size="sm" disabled={describe.isPending} onClick={() => imageInput.current?.click()}>
+                {describe.isPending ? "Testing…" : "Test image"}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => logout.mutate()}>
-                Disconnect ChatGPT
-              </Button>
+              <Button variant="ghost" size="sm" onClick={() => logout.mutate()}>Sign out</Button>
             </>
           ) : (
-            <>
-              <Button size="sm" disabled={login.isPending || loggingIn} onClick={() => login.mutate()}>
-                {loggingIn ? "Waiting for login…" : "Sign in with ChatGPT"}
-              </Button>
-              {status.data?.error && <Badge variant="destructive">{status.data.error}</Badge>}
-              {login.isError && <Badge variant="destructive">{login.error.message}</Badge>}
-            </>
+            <Button size="sm" disabled={login.isPending || loggingIn} onClick={() => login.mutate()}>
+              {loggingIn ? "Waiting…" : "Connect"}
+            </Button>
           )}
         </div>
-        {check.isPending && <Badge variant="secondary">thinking…</Badge>}
-        {check.isError && <Badge variant="destructive">{check.error.message}</Badge>}
-        {describe.isPending && <Badge variant="secondary">looking…</Badge>}
-        {describe.isError && <Badge variant="destructive">{describe.error.message}</Badge>}
+
+        {check.data && <p className="text-sm">{check.data.reply}</p>}
         {describe.data && <p className="text-sm">{describe.data.description}</p>}
-        {check.data && <Badge>AI says: {check.data.reply}</Badge>}
+        {status.data?.error && <p role="alert" className="text-sm text-destructive">{String(status.data.error)}</p>}
+        {errors.map((message, i) => <p key={i} role="alert" className="text-sm text-destructive">{message}</p>)}
+        {ping.data && <p className="text-xs text-muted-foreground">Database {ping.data.db}</p>}
       </CardContent>
     </Card>
   );

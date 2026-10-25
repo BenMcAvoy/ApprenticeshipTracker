@@ -46,10 +46,7 @@ export function AddCompaniesDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add companies</DialogTitle>
-          <DialogDescription>
-            One company per line. Optionally add its careers page after a comma, e.g.{" "}
-            <code>Acme, https://acme.com/careers</code>.
-          </DialogDescription>
+          <DialogDescription>One per line. Add a careers link after a comma.</DialogDescription>
         </DialogHeader>
 
         <Textarea
@@ -68,7 +65,7 @@ export function AddCompaniesDialog({
         />
         <DialogFooter className="sm:justify-between">
           <Button type="button" variant="ghost" onClick={() => fileInput.current?.click()}>
-            <Upload /> Choose file
+            <Upload /> Upload file
           </Button>
           <Button disabled={!count || pending} onClick={submit}>
             Add {count || ""} {count === 1 ? "company" : "companies"}

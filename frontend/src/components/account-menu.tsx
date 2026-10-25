@@ -24,7 +24,7 @@ export function AccountMenu() {
     setPending(true);
     setFailure(null);
     try { await signOut(); }
-    catch (cause) { setFailure(cause instanceof Error ? cause.message : "Could not sign out."); }
+    catch (cause) { setFailure(cause instanceof Error ? cause.message : "Sign-out failed."); }
     finally { setPending(false); }
   }
 
@@ -48,7 +48,7 @@ export function AccountMenu() {
               {isAdmin && <span className="mt-1 block">Administrator</span>}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="min-h-11 md:min-h-8" render={<Link to="/settings" onClick={() => { if (isMobile) setOpenMobile(false); }} />}><Settings /> My CV &amp; settings</DropdownMenuItem>
+            <DropdownMenuItem className="min-h-11 md:min-h-8" render={<Link to="/settings" onClick={() => { if (isMobile) setOpenMobile(false); }} />}><Settings /> Settings</DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger><Sun /> Appearance</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>

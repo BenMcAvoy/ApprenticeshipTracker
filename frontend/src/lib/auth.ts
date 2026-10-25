@@ -57,8 +57,8 @@ export async function signIn() {
     await signInWithPopup(auth, provider);
   } catch (error) {
     const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
-    if (code === "auth/popup-blocked") throw new Error("Allow pop-ups for this site, then try Continue with Google again.");
-    if (code === "auth/operation-not-supported-in-this-environment") throw new Error("Google sign-in needs a browser that supports pop-ups. Open this site in your browser and try again.");
+    if (code === "auth/popup-blocked") throw new Error("Allow pop-ups for this site, then try again.");
+    if (code === "auth/operation-not-supported-in-this-environment") throw new Error("Open this site in a regular browser window.");
     throw error;
   }
 }
@@ -70,6 +70,6 @@ export async function signOut() {
 
 export async function resolveAuthUser(user: FirebaseUser): Promise<AuthUser> {
   const result = await publicQuery<{ user: AuthUser | null; configured: boolean }>("auth.me", await user.getIdToken());
-  if (!result.configured || !result.user) throw new Error("Your Google account could not be authenticated. Please sign in again.");
+  if (!result.configured || !result.user) throw new Error("Sign-in failed. Try again.");
   return result.user;
 }

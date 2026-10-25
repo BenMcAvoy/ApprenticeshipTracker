@@ -2,7 +2,7 @@ import { Check, Copy, Download, ListChecks } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CompanyRow } from "@/components/company-card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,7 @@ function download(content: string, fileName: string, type: string) {
 }
 
 /** Exports the companies currently shown (respecting filters) with their apply links. */
-export function ExportDialog({ companies, filtered }: { companies: CompanyRow[]; filtered: boolean }) {
+export function ExportDialog({ companies }: { companies: CompanyRow[] }) {
   const [openOnly, setOpenOnly] = useState(true);
   const [copied, setCopied] = useState(false);
   const result = useMemo(() => buildExport(companies, openOnly), [companies, openOnly]);
@@ -29,20 +29,15 @@ export function ExportDialog({ companies, filtered }: { companies: CompanyRow[];
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Export list</DialogTitle>
-          <DialogDescription>
-            {filtered ? "Companies matching your current filters" : "Companies in your current view"}, with links for the listings shown.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center gap-3">
           <Switch id="export-open-only" checked={openOnly} onCheckedChange={setOpenOnly} />
-          <Label htmlFor="export-open-only">Only companies with open listings</Label>
+          <Label htmlFor="export-open-only">Open roles only</Label>
         </div>
 
         {result.links === 0 ? (
-          <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
-            Nothing to export. {openOnly ? "No open listings in this view. Turn the switch off to include careers-page links, or change your filters." : "No links in this view."}
-          </p>
+          <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Nothing to export.</p>
         ) : (
           <Textarea readOnly rows={16} value={result.text} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
         )}

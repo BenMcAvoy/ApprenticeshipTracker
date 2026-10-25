@@ -7,12 +7,12 @@ const company: CompanyRow = { id: 1, name: "Example", status: "open", summary: "
 test("confirmed results visibly distinguish a failed recheck", () => {
   const notice = scanNotice({ ...company, lastAttemptStatus: "unclear", lastConfirmedAt: "2026-10-20T12:00:00Z" });
   assert.equal(notice?.retained, true);
-  assert.match(notice!.message, /inconclusive.*last confirmed/);
+  assert.match(notice!.message, /Recheck failed.*last confirmed/);
   assert.equal(scanNotice({ ...company, status: "unclear", lastAttemptStatus: "unclear" }), null);
 });
 test("partial current results show discovery limits without claiming failed verification", () => {
   const notice = scanNotice({ ...company, scanVersion: 2, coverageComplete: false });
   assert.equal(notice?.retained, false);
-  assert.match(notice!.message, /vacancy search is incomplete/);
+  assert.match(notice!.message, /Search incomplete/);
   assert.equal(scanNotice({ ...company, scanVersion: 2, coverageComplete: true }), null);
 });

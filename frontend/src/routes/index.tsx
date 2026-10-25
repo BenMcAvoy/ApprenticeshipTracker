@@ -26,7 +26,6 @@ import {
   type FilterSearch,
   type Filters,
   filtersFromSearch,
-  isFiltered,
   searchFromFilters,
   type Status,
   STATUSES,
@@ -166,7 +165,7 @@ function Home() {
     { onSuccess: () => setLastMarked(value ? { companyId, listingKey: listingKey(listing), title: listing.title } : null) },
   );
 
-  if (companies.isPending || applied.isPending) return <p role="status" className="text-sm text-muted-foreground">Loading your catalogue…</p>;
+  if (companies.isPending || applied.isPending) return <p role="status" className="text-sm text-muted-foreground">Loading…</p>;
   if (companies.isError || applied.isError) return (
     <div className="flex flex-col items-start gap-3">
       <p role="alert" className="text-sm text-destructive">{companies.error?.message || applied.error?.message}</p>
@@ -183,7 +182,7 @@ function Home() {
             <PanelBottom /> Scans
           </Button>
         )}
-        {list.length > 0 && <ExportDialog companies={visible} filtered={isFiltered(filters)} />}
+        {list.length > 0 && <ExportDialog companies={visible} />}
         {isAdmin && <><AddCompaniesDialog
           pending={importCompanies.isPending}
           onAdd={(companies) => importCompanies.mutateAsync({ companies })}
@@ -214,23 +213,20 @@ function Home() {
 
       {mark.isError && <p role="alert" className="text-sm text-destructive">{mark.error.message}</p>}
       {lastMarked && (
-        <div role="status" className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-          <span>Marked “{lastMarked.title}” as applied.</span>
+        <div role="status" className="flex items-center gap-3 text-sm">
+          <span className="min-w-0 truncate text-muted-foreground">Marked applied: {lastMarked.title}</span>
           <Button size="xs" variant="ghost" disabled={mark.isPending} onClick={() => mark.mutate({ companyId: lastMarked.companyId, listingKey: lastMarked.listingKey, applied: false }, { onSuccess: () => setLastMarked(null) })}>Undo</Button>
-          <Button size="xs" variant="ghost" className="ml-auto" onClick={() => setLastMarked(null)}>Dismiss</Button>
         </div>
       )}
 
       {importCompanies.data && (
-        <p className="text-sm text-muted-foreground">
-          Added {importCompanies.data.added} of {importCompanies.data.received} companies.
-        </p>
+        <p className="text-sm text-muted-foreground">Added {importCompanies.data.added}.</p>
       )}
       {importCompanies.isError && <Badge variant="destructive">{importCompanies.error.message}</Badge>}
 
       {companies.data && list.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          {isAdmin ? "No companies yet. Use “Add companies” to type, paste or upload a list, one company per line." : "The catalogue is being prepared. Check back soon for opportunities."}
+          {isAdmin ? "No companies yet. Add some to get started." : "Nothing here yet."}
         </p>
       )}
 
@@ -238,9 +234,7 @@ function Home() {
 
       {list.length > 0 && visible.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-12 text-center text-sm text-muted-foreground">
-          <p>
-            {!personalList.length ? "You've applied to every listing in this view." : "No companies match these filters."}
-          </p>
+          <p>{!personalList.length ? "All applied." : "No matches."}</p>
           <Button variant="outline" size="sm" onClick={() => setFilters(DEFAULT_FILTERS)}>
             Reset filters
           </Button>

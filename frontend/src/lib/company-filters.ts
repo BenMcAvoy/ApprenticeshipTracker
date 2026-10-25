@@ -9,8 +9,8 @@ export const STATUS_LABEL: Record<Status, string> = {
   open: "Open",
   upcoming: "Opening soon",
   closed: "Closed",
-  none: "None found",
-  unclear: "Couldn't check",
+  none: "No roles",
+  unclear: "Unclear",
   error: "Error",
   unscanned: "Not scanned",
 };
@@ -228,24 +228,24 @@ export function closingInfo(c: CompanyRow, now = Date.now()): ClosingInfo {
         return { tone: toneFor(next.days), headline: `${text.charAt(0).toUpperCase()}${text.slice(1)}`, detail: [formatDate(next.t), note].filter(Boolean).join(" · ") };
       }
       if (dated.length) {
-        return { tone: "warn", headline: "Listed closing date has passed", detail: "Rescan to check whether it's still open or was extended" };
+        return { tone: "warn", headline: "Closing date passed" };
       }
       const wording = [...new Set(listings.map((l) => l.closes?.trim()).filter((t): t is string => !!t && !NO_INFO_RE.test(t)))];
-      if (wording.length) return { tone: "warn", headline: "No exact closing date", detail: wording.join(" · ") };
-      return { tone: "warn", headline: "No closing date listed", detail: "Check the listing page for the deadline" };
+      if (wording.length) return { tone: "warn", headline: "No exact date", detail: wording.join(" · ") };
+      return { tone: "warn", headline: "No closing date" };
     }
     case "upcoming":
-      return { tone: "muted", headline: "Not open yet", detail: "No closing date until applications open" };
+      return { tone: "muted", headline: "Not open yet" };
     case "closed":
-      return { tone: "muted", headline: "Applications closed" };
+      return { tone: "muted", headline: "Closed" };
     case "none":
-      return { tone: "muted", headline: "Nothing open to close", detail: "No tech degree apprenticeship vacancies found" };
+      return { tone: "muted", headline: "No roles" };
     case "unclear":
-      return { tone: "muted", headline: "Closing date unknown", detail: "Couldn't check this company" };
+      return { tone: "muted", headline: "Unclear" };
     case "error":
-      return { tone: "muted", headline: "Closing date unknown", detail: "The last scan failed" };
+      return { tone: "muted", headline: "Scan failed" };
     default:
-      return { tone: "muted", headline: "Not scanned yet" };
+      return { tone: "muted", headline: "Not scanned" };
   }
 }
 
