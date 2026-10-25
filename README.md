@@ -1,108 +1,163 @@
 # Apprentice Scanner
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the Proxmox server deployment and access details.
+Apprentice Scanner is a self-hosted tool for finding tech degree apprenticeships.
+You keep a list of employers, and it checks each one's careers pages with an AI
+agent. It shows which employers have open roles, when they close, and keeps a
+record of the evidence behind each result.
 
-## Run with Docker Compose
+For open roles you can upload your CV as a Word file, and the app will write a
+tailored version along with a cover letter. You can run scans by hand or let the
+app scan every day and send a notification when something opens or is about to
+close.
 
-The app uses Firebase Authentication with Google sign-in. Create a Firebase web
-app on the free Spark plan, enable Google under Authentication, and add your app
-hostname to Authentication's authorized domains. The database stays in SQLite
-on your server.
+It is built to be run by one person or a small group. Each person signs in with
+their own Google account and keeps their own CV and applications. The
+administrator manages the shared list of employers, the scans and the ChatGPT
+connection. It is not a public job board.
 
-Create a root `.env` containing the Firebase web-app configuration and the
-Google email that should own the existing data:
+## What you need
 
-```dotenv
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_API_KEY=your-public-web-api-key
-FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-FIREBASE_APP_ID=your-web-app-id
-INITIAL_ADMIN_EMAIL=your-google-email@example.com
-LEGACY_OWNER_EMAIL=your-google-email@example.com
+- Docker with Docker Compose
+- A Google account, for signing in
+- A ChatGPT account, which the scanner uses for its AI work
+- A Firebase project, which handles Google sign-in (free)
+
+## Setup
+
+### 1. Create a Firebase project
+
+1. Go to the [Firebase console](https://console.firebase.google.com) and create a project.
+2. Under **Build > Authentication**, choose **Get started**, then enable the
+   **Google** sign-in provider.
+3. In the project settings, add a **Web app**. Firebase shows a configuration
+   block with `apiKey`, `authDomain`, `projectId` and `appId`. Keep it open.
+
+These values are for the web app, so they are not secret, but they still belong
+in your own `.env` file rather than in the code.
+
+### 2. Configure the app
+
+Copy the example settings file and fill it in:
+
+```sh
+cp .env.example .env
 ```
 
-The web configuration is public; no service-account private key is needed.
-Keep both email values correct before the first account migration. New sign-ups
-are members; the first visitor is never automatically made an admin.
+Set the four `FIREBASE_` values from step 1, and set `INITIAL_ADMIN_EMAIL` to the
+Google address you will sign in with. That account becomes the administrator on
+first start.
 
-With Docker running, start the app from this directory:
+Leave `LEGACY_OWNER_EMAIL` blank unless you are moving data from an older
+version of the app.
+
+### 3. Start it
 
 ```sh
 docker compose up -d --build
 ```
 
-Open <http://localhost:8080>. The frontend serves the app and proxies `/api` to
-the backend. Compose waits for the backend's database ping to pass before
-starting the frontend.
+Open <http://localhost:8080> and sign in with Google.
 
-An administrator can connect ChatGPT from Settings. The sign-in callback uses
-`http://localhost:1455`, so use a browser on the Docker host or forward port 1455
-when running Docker remotely.
+### 4. Connect ChatGPT
 
-The named `data` volume stores the SQLite database, saved CV, settings, and
-ChatGPT login. It survives container rebuilds and `docker compose down`.
-The backend creates or updates the database schema on startup; an update that
-could lose data will stop startup for manual review.
+As the administrator, open **Settings** and choose **Sign in with ChatGPT**. The
+sign-in finishes on a local callback at `http://localhost:1455`, so run the
+browser on the same machine as Docker. If Docker runs on another machine, forward
+port 1455 to it first.
 
-All app data requires Google sign-in. CVs, tailored applications and applied
-listing markers belong to each user and sync through the server. Applied roles
-are hidden from Home and saved in Applications in the sidebar. Search that
-history or use “Undo applied” to return a current role to Home. Older applied
-roles remain in Applications after a vacancy disappears from the catalogue.
-Status and closing-date filters live in the Filters dropdown, alongside sorting.
-The shared company catalogue, scans, schedule and ChatGPT connection are managed
-by administrators. Members can tailor their own applications using that shared
-connection.
+Scans use your ChatGPT plan's usage limits. A full scan of a long list uses a
+lot of them, so you may prefer to scan a few companies at a time.
 
-Upload a Word `.docx` CV in My CV & settings (up to 5 MiB). Uploads save
-automatically to your account and replace your current CV only after the file
-has been read successfully. The plain-text editor has been removed.
+## Using it
 
-Scans continue researching until an evidence-backed verdict and discovery
-coverage pass validation, or the 45-step / eight-minute limit is reached. A
-verified open role is retained while the scanner investigates other candidates
-and pagination. If coverage remains incomplete, verified roles are shown with
-a warning; an investigation with no validated result is “Couldn't check”. It
-cannot become “None found” just because a model stopped, a search failed, or a
-generic job board returned a large result count.
-Quotes are checked against their exact source pages, and promising vacancy
-links must be investigated before a negative result can be accepted. Web search
-uses bounded Bing, Yahoo and Google fallbacks when results are unusable.
+Administrators do the steps marked *(admin)*. Everyone else sees the same list
+and can tailor applications to their own CV.
 
-The latest research trace for each company is stored in `/data/scan-traces`
-inside the data volume (override with `SCAN_TRACE_DIR`). Traces contain public
-research pages, queries and validation events; they do not contain CVs or login
-credentials. Each new scan replaces that company's previous trace.
+**Adding employers (admin).** Use **Add companies** and either type or paste a
+list, one employer per line, or upload a `.txt` or `.csv` file. Names that are
+already in the list are skipped.
 
-An inconclusive recheck preserves the previous confirmed result, its evidence
-and confirmation date. The card shows that availability needs rechecking.
-Partial scans retain older roles with a separate “Needs recheck” label. These
-unverified roles cannot generate tailored applications or deadline alerts, and
-failed verification never sends a closure notification.
+**Scanning (admin).** **Scan all** checks every employer. The arrow next to it
+can scan only the employers that have never been scanned, or re-check results
+that could not be verified. Each card also has its own scan button. Progress
+appears in the panel at the bottom of the screen.
 
-Administrators can recheck older negative results from Settings. This finite
-batch checkpoints progress in SQLite and resumes after a server restart. It
-runs three companies at a time, sends no batch notifications, and reports
-confirmed, inconclusive and failed attempts separately.
+**Reading a result.** Each card shows the status (open, opening soon, closed,
+none found, or couldn't check), the open roles with their closing dates, and an
+"Employer details" section with the sources the scanner used. A result of "none
+found" is only given when the scanner has read the employer's own vacancy pages,
+not just a job board.
 
-Startup adds the account tables and copies the legacy CV and generated documents
-to `LEGACY_OWNER_EMAIL` once. The source tables remain intact for rollback.
+**Filtering.** Search by name, role or location. The Filters menu narrows by
+status or by closing within two weeks. The Sort menu changes the order.
 
-Set `APP_PORT` to change the web port (default `8080`) and `TZ` to change the
-scheduler's time zone (default `Europe/London`). These can be set in your shell
-or a root `.env` file.
+**Tailoring.** On an open role, choose **Tailor CV**. Upload your CV first in
+**Settings** as a `.docx` file (up to 5 MB). The app returns a revised CV with a
+list of what it changed, plus a cover letter, and you can download both as Word
+files. The draft is checked against your CV so it does not add experience you
+don't have, but read it through before you send anything.
+
+**Tracking applications.** Mark a role as applied and it moves out of the main
+list into **Applications**, where you can search your history. Use "Undo applied"
+to bring it back.
+
+**Daily scans and notifications (admin).** In **Settings**, turn on the daily
+scan and choose a time. Notifications go out through [ntfy](https://ntfy.sh). Enter a
+topic name that is hard to guess, because anyone who knows it can read the
+messages. The app also sends reminders as a closing date gets close.
+
+**Export.** **Export** produces a plain list of employers and their application
+links, as text or CSV. It can include only open roles.
+
+## Your data
+
+Everything is stored in a Docker volume called `data`: the SQLite database, your
+CV, your settings, the ChatGPT login, and the research trace for each scan. The
+volume survives rebuilds and `docker compose down`.
+
+To back it up, copy the volume's contents. To delete everything, run
+`docker compose down -v`. That cannot be undone.
+
+Research traces contain the public pages the scanner read and the searches it
+ran. They do not contain your CV or your login.
+
+## Configuration
+
+These values can be set in `.env`:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `APP_PORT` | `8080` | Port for the web app |
+| `TZ` | `Europe/London` | Time zone for the daily scan and reminders |
+| `LOG_LEVEL` | `info` | How much the backend logs: `error`, `warn`, `info` or `debug` |
+| `SCAN_TRACE_DIR` | `/data/scan-traces` | Where research traces are kept |
+
+## Troubleshooting
+
+- **Sign-in fails with "unauthorized domain".** Add the address you are using to
+  the authorised domains under Firebase's Authentication settings. `localhost`
+  is allowed by default.
+- **ChatGPT sign-in never finishes.** Check that port 1455 is free and that the
+  browser is on the Docker machine. See step 4.
+- **A scan says "couldn't check".** The employer's site may block automated
+  visits, or the page may need JavaScript that did not load. Try the scan again
+  later, or add the company's careers page address in its details.
+- **Something else.** Run `docker compose logs -f` to see the backend log. Set
+  `LOG_LEVEL=debug` in `.env` and restart for more detail.
+
+## Development
+
+You need Node.js 24 and npm.
 
 ```sh
-docker compose ps
-docker compose logs -f
-docker compose down
+npm install
+npm run dev     # backend on http://localhost:3000, frontend on http://localhost:5173
+npm run build   # type-check the backend, build the frontend
+npm test        # run the backend and frontend tests
 ```
 
-`docker compose down -v` also deletes the stored data.
+The backend uses Prisma with SQLite. The schema lives in `backend/prisma/`. The
+frontend uses React, Vite, TanStack Router and shadcn/ui.
 
-## Checks
-
-```sh
-npm run build
-npm test
-```
+Never commit your `.env`, the `data` volume, or `backend/dev.db`. They are
+already listed in `.gitignore`.
