@@ -97,13 +97,6 @@ function Home() {
   return (
     <div className="@container flex flex-col gap-4">
       <HeaderActions>{visible.length > 0 && <ExportDialog companies={visible} />}</HeaderActions>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <p>
-          Vacancies from <a className="underline underline-offset-2" href="https://www.theapprenticeguide.net/apprenticeships?routes=Digital&levels=6-7&salaryMin=20000&startYear=2027" target="_blank" rel="noreferrer">The Apprentice Guide</a>
-          {` · ${feed.data.total} roles`}{feed.data.live ? " · live" : " · saved snapshot"}
-        </p>
-        <p>{feed.isFetching ? "Updating… · " : "Updated "}{new Date(feed.data.fetchedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</p>
-      </div>
       {feed.data.liveError && <p role="status" className="text-xs text-muted-foreground">TAG live results are unavailable: {feed.data.liveError} Showing the saved snapshot.</p>}
 
       {mark.isError && <p role="alert" className="text-sm text-destructive">{mark.error.message}</p>}

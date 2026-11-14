@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Check, ChevronsUpDown, LogOut, Monitor, Moon, Settings, Sun, UserRound } from "lucide-react";
+import { Check, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { SidebarMenuButton, useSidebar } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type Theme, useTheme } from "@/lib/theme";
 
@@ -14,7 +13,6 @@ const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
 
 export function AccountMenu() {
   const { user, isAdmin, signOut, error } = useAuth();
-  const { state, isMobile, setOpenMobile } = useSidebar();
   const { theme, setTheme } = useTheme();
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -32,15 +30,10 @@ export function AccountMenu() {
     <div className="min-w-0">
       {(failure || error) && <span role="alert" className="mb-1 block truncate px-2 text-xs text-destructive" title={failure || error || undefined}>{failure || error}</span>}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={`${user.name || user.email} (${user.email})`} aria-label={`Account menu for ${user.name || user.email}`} />}>
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted"><UserRound className="size-4" /></div>
-          <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left leading-tight">
-            <span className="w-full truncate font-medium">{user.name || user.email}</span>
-            <span className="w-full truncate text-xs text-muted-foreground">{user.email}</span>
-          </span>
-          <ChevronsUpDown className="ml-auto size-4" />
+        <DropdownMenuTrigger render={<button type="button" className="flex size-9 shrink-0 items-center justify-center rounded-full border bg-muted text-sm font-medium hover:bg-accent" aria-label={`Account menu for ${user.name || user.email}`} title={user.name || user.email} />}>
+          {(user.name || user.email).trim().slice(0, 1).toUpperCase()}
         </DropdownMenuTrigger>
-        <DropdownMenuContent side={!isMobile && state === "collapsed" ? "right" : "top"} align="start" className="w-64 max-w-[calc(100vw-2rem)]">
+        <DropdownMenuContent side="bottom" align="end" className="w-64 max-w-[calc(100vw-2rem)]">
           <DropdownMenuGroup>
             <DropdownMenuLabel>
               <span className="block truncate text-sm text-foreground">{user.name || user.email}</span>
@@ -48,7 +41,7 @@ export function AccountMenu() {
               {isAdmin && <span className="mt-1 block">Administrator</span>}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="min-h-11 md:min-h-8" render={<Link to="/settings" onClick={() => { if (isMobile) setOpenMobile(false); }} />}><Settings /> Settings</DropdownMenuItem>
+            <DropdownMenuItem className="min-h-11 md:min-h-8" render={<Link to="/settings" />}><Settings /> Settings</DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger><Sun /> Appearance</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>

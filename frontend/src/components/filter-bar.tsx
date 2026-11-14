@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CLOSING_SOON_DAYS, DEFAULT_FILTERS, type Filters, isFiltered, SORT_LABEL, SORTS, type Sort } from "@/lib/company-filters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,85 +12,73 @@ const money = (value: number) => value === 0 ? "No minimum" : `£${Math.round(va
 export function FilterBar({ filters, onChange, shown, total, listings, page, totalPages, onPageChange, children }: {
   filters: Filters; onChange: (next: Filters) => void; shown: number; total: number; listings: number; page: number; totalPages: number; onPageChange: (page: number) => void; children?: ReactNode;
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const toggle = <T,>(values: T[], value: T) => values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 
   return (
-    <div className="grid min-w-0 gap-5 lg:grid-cols-[250px_minmax(0,1fr)] xl:grid-cols-[270px_minmax(0,1fr)]">
-      <button type="button" className="flex h-10 items-center justify-between rounded-lg border bg-card px-3 text-sm lg:hidden" onClick={() => setMobileOpen(!mobileOpen)} aria-expanded={mobileOpen}>
-        <span>Filters{isFiltered(filters) ? " · Active" : ""}</span><span className="text-muted-foreground">{mobileOpen ? "Hide" : "Show"}</span>
-      </button>
-      <aside className={`${mobileOpen ? "block" : "hidden"} rounded-xl border bg-card p-4 lg:block lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:sticky lg:top-4`}>
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Filters</h2>
-          <Button variant="link" size="xs" className="h-auto p-0 text-muted-foreground" onClick={() => onChange(DEFAULT_FILTERS)}>Reset defaults</Button>
+    <section className="w-full min-w-0">
+      <div className="mb-4 flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+          <Input value={filters.q} onChange={(event) => onChange({ ...filters, q: event.target.value })} placeholder="Search role, company or keyword" className="h-11 min-w-0 flex-1 rounded-full bg-muted/60 px-4" aria-label="Search role, company or keyword" />
+          <label className="flex h-10 shrink-0 items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground"><span>Sort:</span><select className="min-w-28 bg-transparent font-medium text-foreground outline-none" value={filters.sort} onChange={(event) => onChange({ ...filters, sort: event.target.value as Sort })} aria-label="Sort results">{SORTS.map((sort) => <option key={sort} value={sort}>{SORT_LABEL[sort]}</option>)}</select></label>
         </div>
 
-        <section className="mb-5">
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Location</h3>
-          <Input value={filters.location} onChange={(event) => onChange({ ...filters, location: event.target.value })} placeholder="Town, city or postcode" aria-label="Location" className="h-9" />
-        </section>
-
-        <section className="mb-5">
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Start year</h3>
-          <select className="h-9 rounded-md border bg-background px-2 text-sm" aria-label="Start year" value={filters.startYear ?? ""} onChange={(event) => onChange({ ...filters, startYear: event.target.value ? Number(event.target.value) : null })}>
-            <option value="">Any year</option>{YEARS.map((year) => <option key={year} value={year}>{year}</option>)}
+        <div className="grid min-w-0 gap-2 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
+          <Input value={filters.location} onChange={(event) => onChange({ ...filters, location: event.target.value })} placeholder="Town, city or postcode" aria-label="Location" className="h-10" />
+          <select className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Start year" value={filters.startYear ?? ""} onChange={(event) => onChange({ ...filters, startYear: event.target.value ? Number(event.target.value) : null })}>
+            <option value="">Any start year</option>{YEARS.map((year) => <option key={year} value={year}>{year}</option>)}
           </select>
-        </section>
+          <select className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Minimum salary" value={filters.salaryMin ?? ""} onChange={(event) => onChange({ ...filters, salaryMin: event.target.value ? Number(event.target.value) : null })}>
+            <option value="">No min salary</option>{SALARIES.map((salary) => <option key={salary} value={salary}>{money(salary)}</option>)}
+          </select>
+          <select className="h-10 rounded-md border bg-background px-3 text-sm" aria-label="Maximum salary" value={filters.salaryMax ?? ""} onChange={(event) => onChange({ ...filters, salaryMax: event.target.value ? Number(event.target.value) : null })}>
+            <option value="">No max salary</option>{SALARIES.filter((salary) => salary > 0).map((salary) => <option key={salary} value={salary}>{money(salary)}</option>)}
+          </select>
 
-        <section className="mb-5">
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Salary range</h3>
-          <div className="flex items-center gap-2">
-            <select className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm" aria-label="Minimum salary" value={filters.salaryMin ?? ""} onChange={(event) => onChange({ ...filters, salaryMin: event.target.value ? Number(event.target.value) : null })}>
-              <option value="">No min</option>{SALARIES.map((salary) => <option key={salary} value={salary}>{money(salary)}</option>)}
-            </select><span className="text-muted-foreground">–</span>
-            <select className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm" aria-label="Maximum salary" value={filters.salaryMax ?? ""} onChange={(event) => onChange({ ...filters, salaryMax: event.target.value ? Number(event.target.value) : null })}>
-              <option value="">No max</option>{SALARIES.filter((salary) => salary > 0).map((salary) => <option key={salary} value={salary}>{money(salary)}</option>)}
-            </select>
-          </div>
-        </section>
+          <details className="group relative min-w-0">
+            <summary className="flex h-10 cursor-pointer list-none items-center justify-between rounded-md border bg-background px-3 text-sm marker:hidden">
+              <span className="truncate">Sector{filters.routes.length ? ` · ${filters.routes.length}` : ""}</span><span className="ml-2 text-muted-foreground">⌄</span>
+            </summary>
+            <div className="absolute left-0 top-11 z-30 max-h-72 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border bg-popover p-2 shadow-lg">
+              {SECTORS.map((sector) => <label key={sector} className="flex cursor-pointer items-center gap-2 rounded px-2 py-2 text-sm hover:bg-muted">
+                <input type="checkbox" checked={filters.routes.includes(sector)} onChange={() => onChange({ ...filters, routes: toggle(filters.routes, sector) })} className="accent-primary" /><span>{sector}</span>
+              </label>)}
+            </div>
+          </details>
 
-        <section className="mb-5">
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sector</h3>
-          <div className="space-y-0.5">{SECTORS.map((sector) => <label key={sector} className={`flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-sm ${filters.routes.includes(sector) ? "bg-muted" : "hover:bg-muted/60"}`}>
-            <input type="checkbox" checked={filters.routes.includes(sector)} onChange={() => onChange({ ...filters, routes: toggle(filters.routes, sector) })} className="accent-primary" />
-            <span className="min-w-0 flex-1">{sector}</span>
-          </label>)}</div>
-        </section>
+          <details className="group relative min-w-0">
+            <summary className="flex h-10 cursor-pointer list-none items-center justify-between rounded-md border bg-background px-3 text-sm marker:hidden">
+              <span className="truncate">Level{filters.levels.length ? ` · ${filters.levels.length}` : ""}</span><span className="ml-2 text-muted-foreground">⌄</span>
+            </summary>
+            <div className="absolute left-0 top-11 z-30 w-56 rounded-lg border bg-popover p-2 shadow-lg">
+              {LEVELS.map((level) => <label key={level} className="flex cursor-pointer items-center gap-2 rounded px-2 py-2 text-sm hover:bg-muted">
+                <input type="checkbox" checked={filters.levels.includes(level)} onChange={() => onChange({ ...filters, levels: toggle(filters.levels, level) })} className="accent-primary" /><span>Level {level}</span>
+              </label>)}
+            </div>
+          </details>
 
-        <section>
-          <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Level</h3>
-          <div className="space-y-0.5">{LEVELS.map((level) => <label key={level} className={`flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-sm ${filters.levels.includes(level) ? "bg-muted" : "hover:bg-muted/60"}`}>
-            <input type="checkbox" checked={filters.levels.includes(level)} onChange={() => onChange({ ...filters, levels: toggle(filters.levels, level) })} className="accent-primary" />
-            <span>Level {level}</span>
-          </label>)}</div>
-        </section>
-      </aside>
-
-      <main className="min-w-0">
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <Input value={filters.q} onChange={(event) => onChange({ ...filters, q: event.target.value })} placeholder="Search role, company or keyword" className="h-11 flex-1 rounded-full bg-muted/60 px-4" aria-label="Search role, company or keyword" />
-          <label className="flex items-center gap-2 text-sm text-muted-foreground"><span>Sort:</span><select className="h-9 rounded-md border-0 bg-transparent px-1 font-medium text-foreground" value={filters.sort} onChange={(event) => onChange({ ...filters, sort: event.target.value as Sort })} aria-label="Sort results">{SORTS.map((sort) => <option key={sort} value={sort}>{SORT_LABEL[sort]}</option>)}</select></label>
+          <label className="flex h-10 items-center gap-2 rounded-md border px-3 text-sm"><input type="checkbox" checked={filters.soon} onChange={(event) => onChange({ ...filters, soon: event.target.checked })} />Closing within {CLOSING_SOON_DAYS} days</label>
         </div>
-        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-          <p><strong>{total}</strong> {total === 1 ? "apprenticeship" : "apprenticeships"}<span className="ml-1 text-muted-foreground">· {listings} on this page · {shown} employers</span></p>
-          <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={filters.soon} onChange={(event) => onChange({ ...filters, soon: event.target.checked })} />Closing within {CLOSING_SOON_DAYS} days</label>
-        </div>
-        <div className="mb-5 flex flex-wrap gap-1.5">
+
+        <div className="flex min-h-8 flex-wrap items-center gap-1.5">
           {filters.routes.map((route) => <span key={route} className="rounded-full bg-muted px-2.5 py-1 text-xs">{route}<button className="ml-1.5 text-muted-foreground" aria-label={`Remove ${route} sector`} onClick={() => onChange({ ...filters, routes: filters.routes.filter((item) => item !== route) })}>×</button></span>)}
-          {filters.levels.length > 0 && <span className="rounded-full bg-muted px-2.5 py-1 text-xs">Level {Math.min(...filters.levels)}{filters.levels.length > 1 ? `–${Math.max(...filters.levels)}` : ""}<button className="ml-1.5 text-muted-foreground" aria-label="Clear levels" onClick={() => onChange({ ...filters, levels: [] })}>×</button></span>}
+          {filters.levels.length > 0 && <span className="rounded-full bg-muted px-2.5 py-1 text-xs">Level {filters.levels.slice().sort((a, b) => a - b).join(", ")}<button className="ml-1.5 text-muted-foreground" aria-label="Clear levels" onClick={() => onChange({ ...filters, levels: [] })}>×</button></span>}
           {filters.salaryMin !== null && <span className="rounded-full bg-muted px-2.5 py-1 text-xs">min {money(filters.salaryMin)}<button className="ml-1.5 text-muted-foreground" aria-label="Clear minimum salary" onClick={() => onChange({ ...filters, salaryMin: null })}>×</button></span>}
           {filters.salaryMax !== null && <span className="rounded-full bg-muted px-2.5 py-1 text-xs">max {money(filters.salaryMax)}<button className="ml-1.5 text-muted-foreground" aria-label="Clear maximum salary" onClick={() => onChange({ ...filters, salaryMax: null })}>×</button></span>}
           {filters.startYear !== null && <span className="rounded-full bg-muted px-2.5 py-1 text-xs">Starts {filters.startYear}<button className="ml-1.5 text-muted-foreground" aria-label="Clear start year" onClick={() => onChange({ ...filters, startYear: null })}>×</button></span>}
           {filters.location && <span className="rounded-full bg-muted px-2.5 py-1 text-xs">{filters.location}<button className="ml-1.5 text-muted-foreground" aria-label="Clear location" onClick={() => onChange({ ...filters, location: "" })}>×</button></span>}
+          {isFiltered(filters) && <Button variant="link" size="xs" className="ml-auto text-muted-foreground" onClick={() => onChange(DEFAULT_FILTERS)}>Reset defaults</Button>}
         </div>
-        {totalPages > 1 && <nav className="mb-4 flex items-center justify-center gap-3" aria-label="Vacancy pages">
-          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Previous</Button>
-          <span className="text-xs text-muted-foreground">Page {page} of {totalPages}</span>
-          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</Button>
-        </nav>}
-        {children}
-      </main>
-    </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 text-sm">
+          <p><strong>{total}</strong> {total === 1 ? "apprenticeship" : "apprenticeships"}<span className="ml-2 text-xs text-muted-foreground">{listings} on this page · {shown} employers</span></p>
+          {totalPages > 1 && <nav className="flex items-center gap-2" aria-label="Vacancy pages">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Previous</Button>
+            <span className="min-w-20 text-center text-xs text-muted-foreground">{page} / {totalPages}</span>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Next</Button>
+          </nav>}
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }

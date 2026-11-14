@@ -4,6 +4,8 @@ import { prisma } from "./db.ts";
 const API_ROOT = "https://api.theapprenticeguide.net/api";
 const SITE_ORIGIN = "https://www.theapprenticeguide.net";
 const PAGE_SIZE = 24;
+const SEARCH_CACHE_TTL_MS = 5 * 60_000;
+const SEARCH_CACHE_MAX_ENTRIES = 100;
 
 export type TagSearch = {
   q: string;
@@ -43,6 +45,9 @@ type TagPage = { data: TagVacancy[]; total: number; totalPages: number; page: nu
 
 let cachedToken: { value: string; expiresAt: number } | undefined;
 let activeSessionCookie: string | undefined;
+type SearchResult = Awaited<ReturnType<typeof loadTagSearch>>;
+const searchCache = new Map<string, { expiresAt: number; value: SearchResult }>();
+const inFlightSearches = new Map<string, Promise<SearchResult>>();
 
 function sessionCookie(): string | undefined {
   if (activeSessionCookie) return activeSessionCookie;
@@ -228,7 +233,7 @@ async function persistAndGroup(vacancies: TagVacancy[]) {
   return companies;
 }
 
-export async function searchTagVacancies(search: TagSearch) {
+async function loadTagSearch(search: TagSearch) {
   const result = await fetchPage(search);
   const companies = await persistAndGroup(result.data);
   return {
@@ -242,4 +247,49 @@ export async function searchTagVacancies(search: TagSearch) {
     query: new URL(vacanciesUrl(search)).searchParams.toString(),
     live: true,
   };
+}
+
+function cacheKey(search: TagSearch): string {
+  return JSON.stringify({
+    q: search.q.trim(),
+    location: search.location.trim(),
+    routes: [...search.routes].sort(),
+    courseLevels: [...search.courseLevels].sort((a, b) => a - b),
+    salaryMin: search.salaryMin,
+    salaryMax: search.salaryMax,
+    startYear: search.startYear,
+    sort: search.sort,
+    page: search.page,
+  });
+}
+
+/** Process-local KV cache; identical in-flight searches share the same TAG request. */
+export async function searchTagVacancies(search: TagSearch): Promise<SearchResult> {
+  const key = cacheKey(search);
+  const cached = searchCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    // Reinsert to keep the Map in least-recently-used order.
+    searchCache.delete(key);
+    searchCache.set(key, cached);
+    return cached.value;
+  }
+  if (cached) searchCache.delete(key);
+
+  const inFlight = inFlightSearches.get(key);
+  if (inFlight) return inFlight;
+
+  const pending = loadTagSearch(search);
+  inFlightSearches.set(key, pending);
+  try {
+    const value = await pending;
+    searchCache.set(key, { value, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS });
+    while (searchCache.size > SEARCH_CACHE_MAX_ENTRIES) {
+      const oldestKey = searchCache.keys().next().value;
+      if (oldestKey === undefined) break;
+      searchCache.delete(oldestKey);
+    }
+    return value;
+  } finally {
+    inFlightSearches.delete(key);
+  }
 }
