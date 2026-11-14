@@ -19,11 +19,12 @@ export type CompanyRow = {
   id: number; name: string; careersUrl: string | null; status: string;
   summary: string | null; listings: string; evidence: string; checked: number;
   lastScannedAt: string | Date | null; lastConfirmedAt?: string | Date | null;
+  scanDeferredUntil?: string | Date | null;
   lastAttemptStatus?: string | null; lastAttemptSummary?: string | null;
   scanVersion?: number; coverageComplete?: boolean;
 };
 
-const STATUS: Record<string, string> = { open: "Open", upcoming: "Opening soon", closed: "Closed", none: "No roles", unclear: "Unclear", error: "Error", unscanned: "Not scanned" };
+const STATUS: Record<string, string> = { open: "Open", upcoming: "Opening soon", closed: "Closed", not_opening: "No intake", none: "No roles", unclear: "Unclear", error: "Error", unscanned: "Not scanned" };
 const TONE: Record<Tone, string> = { urgent: "text-destructive", warn: "text-amber-700 dark:text-amber-400", normal: "text-muted-foreground", muted: "text-muted-foreground" };
 
 export function CompanyCard({ company, scanning, disabled, onScan, appliedKeys, onAppliedChange, marking, savingKey }: {
@@ -107,6 +108,7 @@ export function CompanyCard({ company, scanning, disabled, onScan, appliedKeys, 
               <div className="flex flex-col gap-1">
                 {company.lastScannedAt && <p>Checked {new Date(company.lastScannedAt).toLocaleDateString("en-GB")}</p>}
                 {company.lastConfirmedAt && <p>Confirmed {new Date(company.lastConfirmedAt).toLocaleDateString("en-GB")}</p>}
+                {company.status === "not_opening" && company.scanDeferredUntil && <p>Automatic recheck after {new Date(company.scanDeferredUntil).toLocaleDateString("en-GB")}</p>}
               </div>
               {company.lastAttemptSummary && notice?.retained && <p>{company.lastAttemptSummary}</p>}
             </div>

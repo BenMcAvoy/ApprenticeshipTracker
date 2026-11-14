@@ -14,7 +14,7 @@ const MAX_MINUTES = 8;
 // ---------------------------------------------------------------------------
 
 export type ScanStage = "search" | "browse" | "gov" | "verify" | "done";
-export type ScanStatus = "open" | "upcoming" | "closed" | "none" | "unclear" | "error";
+export type ScanStatus = "open" | "upcoming" | "closed" | "not_opening" | "none" | "unclear" | "error";
 
 export type ScanEvent = {
   stage: ScanStage;
@@ -50,11 +50,12 @@ const evidenceSchema = z.object({
 });
 
 const verdictSchema = z.object({
-  status: z.enum(["open", "upcoming", "closed", "none_found", "blocked"]).describe(
+  status: z.enum(["open", "upcoming", "closed", "not_opening", "none_found", "blocked"]).describe(
     [
       "open: at least one tech degree apprenticeship is accepting applications now (listings required).",
       "upcoming: the company says applications for tech degree apprenticeships will open on a stated date/season (evidence required).",
       "closed: the company explicitly says its tech degree apprenticeship applications are closed / the scheme is full (evidence required).",
+      "not_opening: an official company page explicitly says it will not run or recruit for this apprenticeship intake/cycle (evidence required).",
       "none_found: you searched thoroughly and found no tech degree apprenticeship vacancies and no statement either way.",
       "blocked: the company's pages could not be read at all despite repeated attempts.",
     ].join(" "),
@@ -99,6 +100,7 @@ const STATUS_MAP = {
   open: "open",
   upcoming: "upcoming",
   closed: "closed",
+  not_opening: "not_opening",
   none_found: "none",
   blocked: "unclear",
 } as const;
@@ -138,7 +140,7 @@ function digest(text: string, budget = 9000): string {
 /** Sentences that state an application status outright ("applications are currently closed", "opens in September"…). */
 const SUBJECT_RE = /applications?|recruit|intake|scheme|programme|program\b|apprentic|vacanc|register your interest/i;
 const STATE_RE =
-  /\b(closed|open|opens|opened|opening|reopen|reopens|re-open|paused|full|suspended|closing date|deadline|apply by|no longer accepting|not currently (?:accepting|recruiting|taking)|not accepting)\b/i;
+  /\b(closed|open|opens|opened|opening|recruit(?:ing|ment)?|hire|hiring|intake|reopen|reopens|re-open|paused|full|suspended|closing date|deadline|apply by|no longer accepting|not currently (?:accepting|recruiting|taking)|not accepting|no plans to)\b/i;
 
 function statusHints(text: string): string[] {
   if (!/apprentic/i.test(text)) return [];
@@ -428,10 +430,11 @@ export async function* runScan(company: { name: string; careersUrl: string | nul
           return { accepted: false, problems, advice: "Fix these (keep investigating if needed), then call report_verdict again." };
         }
         const coverage = coverageState();
-        if (!coverage.complete) {
+        if (!coverage.complete && input.status !== "not_opening") {
           say("verify", "warn", `Verdict held for coverage: ${coverage.reason}`);
           return { accepted: false, provisional: true, problems: [`Coverage is incomplete: ${coverage.reason}`], coverage, advice: coverageAdvice(coverage) };
         }
+        const acceptedCoverage = input.status === "not_opening" ? { complete: true, pendingCandidates: 0 } : coverage;
         say("verify", "success", `Verdict accepted: ${input.status}`);
         verdict = {
           status: STATUS_MAP[input.status],
@@ -440,9 +443,9 @@ export async function* runScan(company: { name: string; careersUrl: string | nul
           evidence: input.evidence.map(({ url, quote }) => ({ url, quote })),
           checked: pagesOpened + webSearches + govSearches,
           careersUrl: null,
-          coverage,
+          coverage: acceptedCoverage,
         };
-        return { accepted: true, provisional: false, coverage };
+        return { accepted: true, provisional: false, coverage: acceptedCoverage };
       },
     }),
   };
@@ -540,7 +543,7 @@ export async function* runScan(company: { name: string; careersUrl: string | nul
       );
     }
     if (v.status === "open" && !v.listings.length) problems.push("status 'open' requires at least one listing with url and verbatim quote.");
-    if ((v.status === "upcoming" || v.status === "closed") && !v.evidence.length) {
+    if ((v.status === "upcoming" || v.status === "closed" || v.status === "not_opening") && !v.evidence.length) {
       problems.push(`status '${v.status}' requires at least one verbatim evidence quote stating it.`);
     }
     if (v.status === "closed" && !v.evidence.some((e) => /clos|not (currently )?(recruiting|accepting|open)|full|no (current )?vacanc/i.test(e.quote))) {
@@ -557,7 +560,7 @@ export async function* runScan(company: { name: string; careersUrl: string | nul
     if ((v.status === "none_found" || v.status === "blocked") && hintsSeen.length && hintRejections < 2) {
       hintRejections++;
       problems.push(
-        `You were shown explicit status statements: ${hintsSeen.slice(0, 4).map((h) => `“${h.snippet.slice(0, 160)}” (${h.url})`).join(" | ")}. If any concern tech degree apprenticeships, report 'closed' / 'upcoming' / 'open' and quote it. Only keep 'none_found' if none of them are about this scheme.`,
+        `You were shown explicit status statements: ${hintsSeen.slice(0, 4).map((h) => `“${h.snippet.slice(0, 160)}” (${h.url})`).join(" | ")}. If any concern tech degree apprenticeships, report 'not_opening' / 'closed' / 'upcoming' / 'open' as appropriate and quote it. Only keep 'none_found' if none of them are about this scheme.`,
       );
     }
     if (v.status === "none_found" && toolCalls < 8) problems.push(`Only ${toolCalls} tool calls so far. A thorough check needs more: try the company's job search for 'apprentice', 'degree apprenticeship', 'level 6', and other domains/boards.`);
@@ -582,7 +585,7 @@ How to work:
 2. Use search_web to find the company's careers / early-careers / apprenticeships pages and its job board (Workday, Greenhouse, SmartRecruiters, Oracle, Eightfold…). Then open_page them and follow relevant links, including the job search with terms like "apprentice", "degree apprenticeship", "level 6".
 3. Read what open_page actually returns. Job lists that say "no jobs" can be wrong if the page is a shell or you reached the wrong page — try another URL, a deeper link, or a search URL before believing it.
 4. Never give up early and never guess. If one route is blocked or empty, use another (different domain, search snippets, government service). Vary your queries.
-5. Treat statuses precisely: "closed" needs an explicit statement; "upcoming" needs a stated opening date/season; both can be reached from the programme page alone. Be precise: only list vacancies that are genuinely tech degree apprenticeships. If the company has apprenticeship vacancies but none are tech, say so with "none_found" (mention them in the summary).
+5. Treat statuses precisely: "closed" means applications are currently closed; "not_opening" means an official company page explicitly says this intake/cycle will not run or recruit; "upcoming" needs a stated opening date/season. An explicit official no-intake statement is sufficient: quote it, report "not_opening", and stop without checking job boards or government vacancies. Be precise: only list vacancies that are genuinely tech degree apprenticeships. If the company has apprenticeship vacancies but none are tech, say so with "none_found" (mention them in the summary).
 6. Quotes in your verdict must be copied word-for-word from tool results. They are machine-checked.
 7. Follow promising individual vacancies discovered on independent boards through to the employer's own application page. Different legal entities/divisions may recruit on different dates; a general programme calendar cannot override a live vacancy. You must investigate the unread candidates reported by validation before concluding a negative answer.
 8. Quotes must come from the exact URL you cite, successfully opened with open_page; snippets from another page are not enough. Generic result counts, unfiltered searches and unknown result counts cannot establish absence. Do not submit a deadline as evidence of closure or an interest-registration form as an open job.

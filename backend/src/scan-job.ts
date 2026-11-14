@@ -5,7 +5,8 @@ import { saveScanTrace } from "./scan-trace.ts";
 import { vacancyIdentity } from "./vacancy-identity.ts";
 
 export const SCAN_VERSION = 2;
-const confirmedStatuses = new Set(["open", "upcoming", "closed", "none"]);
+const NO_INTAKE_RECHECK_DAYS = 30;
+const confirmedStatuses = new Set(["open", "upcoming", "closed", "not_opening", "none"]);
 type SavedListing = Verdict["listings"][number] & { lastVerifiedAt?: string; needsRecheck?: boolean };
 
 function readListings(value: string): SavedListing[] {
@@ -46,6 +47,7 @@ export async function persistVerdict(prisma: PrismaClient, company: Company, ver
     return tx.company.update({ where: { id: company.id }, data: {
       ...attempt, careersUrl, status: verdict.status, summary: verdict.summary,
       listings: JSON.stringify([...fresh, ...retained]), evidence: JSON.stringify(verdict.evidence), checked: verdict.checked,
+      scanDeferredUntil: verdict.status === "not_opening" ? new Date(now.getTime() + NO_INTAKE_RECHECK_DAYS * 24 * 60 * 60 * 1000) : null,
       lastConfirmedAt: confirmed ? now : null, scanVersion: confirmed ? SCAN_VERSION : current.scanVersion,
       coverageComplete: complete,
     } });

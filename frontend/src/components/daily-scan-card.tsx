@@ -19,6 +19,7 @@ export function DailyScanCard() {
 
   const [enabled, setEnabled] = useState(true);
   const [time, setTime] = useState("07:00");
+  const [intervalDays, setIntervalDays] = useState(5);
   const [topic, setTopic] = useState("");
   const [remindersOn, setRemindersOn] = useState(true);
   const [reminderDays, setReminderDays] = useState(7);
@@ -27,6 +28,7 @@ export function DailyScanCard() {
     if (settings.data && !loaded) {
       setEnabled(settings.data.dailyScanEnabled);
       setTime(settings.data.dailyScanTime);
+      setIntervalDays(settings.data.scanIntervalDays);
       setTopic(settings.data.ntfyTopic);
       setRemindersOn(settings.data.closingRemindersEnabled);
       setReminderDays(settings.data.closingReminderDays);
@@ -48,6 +50,7 @@ export function DailyScanCard() {
     !!data &&
     (enabled !== data.dailyScanEnabled ||
       time !== data.dailyScanTime ||
+      intervalDays !== data.scanIntervalDays ||
       topic !== data.ntfyTopic ||
       remindersOn !== data.closingRemindersEnabled ||
       reminderDays !== data.closingReminderDays);
@@ -59,18 +62,25 @@ export function DailyScanCard() {
     <Card>
       {scanAccess.dialog}
       <CardHeader className="flex-row items-center justify-between gap-3">
-        <CardTitle>Daily scan</CardTitle>
+        <CardTitle>Automatic scan</CardTitle>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {enabled ? "On" : "Off"}
-          <Switch id="daily-enabled" checked={enabled} onCheckedChange={setEnabled} aria-label="Daily scan" />
+          <Switch id="daily-enabled" checked={enabled} onCheckedChange={setEnabled} aria-label="Automatic scan" />
         </div>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-5">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor="daily-time">Time</Label>
             <Input id="daily-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={!enabled} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="scan-interval">Repeat every</Label>
+            <div className="flex items-center gap-2">
+              <Input id="scan-interval" type="number" min={1} max={30} step={1} value={intervalDays} onChange={(e) => setIntervalDays(Math.max(1, Math.min(30, Number(e.target.value) || 1)))} disabled={!enabled} className="w-24" />
+              <span className="text-sm text-muted-foreground">days</span>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="ntfy-topic">ntfy topic</Label>
@@ -106,6 +116,7 @@ export function DailyScanCard() {
               void scanAccess.run(() => save.mutateAsync({
                 dailyScanEnabled: enabled,
                 dailyScanTime: time,
+                scanIntervalDays: intervalDays,
                 ntfyTopic: topic,
                 closingRemindersEnabled: remindersOn,
                 closingReminderDays: reminderDays,

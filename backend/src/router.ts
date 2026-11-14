@@ -234,6 +234,7 @@ export const appRouter = router({
       return {
         dailyScanEnabled: s.dailyScanEnabled,
         dailyScanTime: s.dailyScanTime,
+        scanIntervalDays: s.scanIntervalDays,
         ntfyServer: s.ntfyServer,
         ntfyTopic: s.ntfyTopic,
         lastDailyRunAt: s.lastDailyRunAt,
@@ -253,6 +254,7 @@ export const appRouter = router({
         z.object({
           dailyScanEnabled: z.boolean(),
           dailyScanTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24-hour)"),
+          scanIntervalDays: z.number().int().min(1).max(30).default(5),
           ntfyTopic: z.string().trim().refine(isValidTopic, "Topic may only contain letters, numbers, _ and -"),
           closingRemindersEnabled: z.boolean(),
           closingReminderDays: z.number().int().min(1).max(30),
@@ -260,7 +262,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const current = await getSettings();
-        const rescheduled = current.dailyScanEnabled !== input.dailyScanEnabled || current.dailyScanTime !== input.dailyScanTime;
+        const rescheduled = current.dailyScanEnabled !== input.dailyScanEnabled || current.dailyScanTime !== input.dailyScanTime || current.scanIntervalDays !== input.scanIntervalDays;
         // Turning reminders on mid-day shouldn't fire an immediate burst; the first one is the next daily slot.
         const remindersTurnedOn = input.closingRemindersEnabled && !current.closingRemindersEnabled;
         await prisma.settings.update({

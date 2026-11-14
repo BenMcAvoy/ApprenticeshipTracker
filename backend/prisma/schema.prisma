@@ -81,6 +81,8 @@ model Company {
   // number of pages / searches the agent consulted
   checked       Int       @default(0)
   lastScannedAt DateTime?
+  // Scheduled scans pause this company after an explicit no-intake statement.
+  scanDeferredUntil DateTime?
   // Last confirmed result remains visible if a later attempt is inconclusive.
   lastConfirmedAt DateTime?
   lastAttemptStatus String?
@@ -117,10 +119,12 @@ model Application {
   @@unique([companyId, listingUrl])
 }
 
-/// Global admin-managed daily rescan + ntfy notification settings.
+/// Global admin-managed automatic scan + ntfy notification settings.
 model Settings {
   id                 Int       @id
   dailyScanEnabled   Boolean   @default(true)
+  // Minimum whole days between automatic full scans.
+  scanIntervalDays   Int       @default(5)
   // local time of day, "HH:MM"
   dailyScanTime      String    @default("07:00")
   ntfyServer         String    @default("https://ntfy.sh")

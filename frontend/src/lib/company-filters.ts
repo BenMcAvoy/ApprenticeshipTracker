@@ -2,13 +2,14 @@ import { parseCloseDate as parseDate } from "backend/closing";
 import { listingKey } from "backend/listing-key";
 import type { CompanyRow } from "@/components/company-card";
 
-export const STATUSES = ["open", "upcoming", "closed", "none", "unclear", "error", "unscanned"] as const;
+export const STATUSES = ["open", "upcoming", "closed", "not_opening", "none", "unclear", "error", "unscanned"] as const;
 export type Status = (typeof STATUSES)[number];
 
 export const STATUS_LABEL: Record<Status, string> = {
   open: "Open",
   upcoming: "Opening soon",
   closed: "Closed",
+  not_opening: "No intake",
   none: "No roles",
   unclear: "Unclear",
   error: "Error",
@@ -105,7 +106,7 @@ export function nextClosing(c: CompanyRow, now = Date.now()): number | null {
   return dates.length ? Math.min(...dates) : null;
 }
 
-const RANK: Record<string, number> = { open: 0, upcoming: 1, unclear: 2, none: 3, closed: 4, error: 5, unscanned: 6 };
+const RANK: Record<string, number> = { open: 0, upcoming: 1, unclear: 2, none: 3, closed: 4, not_opening: 4, error: 5, unscanned: 6 };
 const scannedAt = (c: CompanyRow) => (c.lastScannedAt ? new Date(c.lastScannedAt).getTime() : 0);
 
 export function applyFilters(companies: CompanyRow[], f: Filters, now = Date.now()): CompanyRow[] {
@@ -238,6 +239,8 @@ export function closingInfo(c: CompanyRow, now = Date.now()): ClosingInfo {
       return { tone: "muted", headline: "Not open yet" };
     case "closed":
       return { tone: "muted", headline: "Closed" };
+    case "not_opening":
+      return { tone: "muted", headline: "No intake this cycle" };
     case "none":
       return { tone: "muted", headline: "No roles" };
     case "unclear":

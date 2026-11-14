@@ -101,10 +101,14 @@ don't have, but read it through before you send anything.
 list into **Applications**, where you can search your history. Use "Undo applied"
 to bring it back.
 
-**Daily scans and notifications (admin).** In **Settings**, turn on the daily
-scan and choose a time. Notifications go out through [ntfy](https://ntfy.sh). Enter a
-topic name that is hard to guess, because anyone who knows it can read the
-messages. The app also sends reminders as a closing date gets close.
+**Automatic scans and notifications (admin).** In **Settings**, turn on
+automatic scans, choose a time and set how many days to wait between full scans
+(five days by default). An explicit employer statement that an intake will not
+run is saved as **No intake** and excluded from automatic scans for 30 days;
+manual scans still run immediately. Notifications go out through
+[ntfy](https://ntfy.sh). Enter a topic name that is hard to guess, because
+anyone who knows it can read the messages. Closing-date reminders use saved
+results and continue on their own daily schedule.
 
 **Export.** **Export** produces a plain list of employers and their application
 links, as text or CSV. It can include only open roles.

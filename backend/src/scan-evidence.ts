@@ -1,7 +1,7 @@
 /** Source-bound evidence and conservative verdict checks for an apprenticeship scan. */
 import { parseCloseDate } from "./closing.ts";
 
-export type ScanEvidenceStatus = "open" | "upcoming" | "closed" | "none_found" | "blocked";
+export type ScanEvidenceStatus = "open" | "upcoming" | "closed" | "not_opening" | "none_found" | "blocked";
 export type SearchResult = { title: string; url: string; snippet: string };
 export type ReadPage = { url: string; text: string; title: string; links: { text: string; url: string }[]; status: number };
 export type ScanVerdict = {
@@ -49,6 +49,7 @@ const isBlocked = (p: ReadPage) => !p.text.trim() || p.status < 200 || p.status 
 const noResultsPattern = /\b(?:no (?:matching )?(?:jobs?|vacancies|results|opportunities)(?: were)? found|0 (?:jobs?|results|vacancies)|your search returned no|there are no (?:matching )?(?:jobs?|vacancies))\b/i;
 const genericCountPattern = /\b(?:1\s*[-–]\s*\d+\s+of\s+\d{2,}|\d{2,}\+?\s+results?)\b/i;
 const explicitClosedPattern = /\b(?:applications? (?:are|is|have been|has been|remain|now|currently)?\s*(?:now\s+|currently\s+)?closed|no longer accepting applications?|not accepting applications?|recruitment (?:is|has been|has) closed|scheme is full|intake is full|vacancies are closed)\b/i;
+const explicitNoIntakePattern = /\b(?:(?:(?:we|the company|the programme|the scheme|applications?)\s+)?(?:(?:will|would|do|does|are|is)\s+not|won't|wouldn't|don't|doesn't|aren't|isn't|have no plans to|has no plans to)\s+(?:be\s+)?(?:open(?:ing)?|recruit(?:ing)?|hir(?:e|ing)|tak(?:e|ing)(?: on)?|offer(?:ing)?|run(?:ning)?|accept(?:ing)?)|\bno\b.{0,80}\b(?:apprenticeship(?:s)?|intake|recruitment|applications?)\b.{0,50}\b(?:this year|this cycle|next year|20\d{2}|planned|expected|available|until|will|won't)|(?:not|no longer)\s+(?:planning|expecting|intending)\s+to\s+(?:recruit|hire|open|offer|run|take on))\b/i;
 const explicitUpcomingPattern = /\b(?:applications? (?:will )?(?:open|reopen|start|launch)(?:ing)?|(?:open|reopen|opening) for applications?)\b/i;
 const statedWhenPattern = /\b(?:on\s+\d{1,2}(?:st|nd|rd|th)?\s+[a-z]+|in\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+\d{4})?|(?:spring|summer|autumn|fall|winter)(?:\s+\d{4})?|\d{4})\b/i;
 const activePattern = /\b(?:apply now|apply today|apply for this (?:job|role)|applications? (?:are )?open|accepting applications?|currently recruiting|vacancy is open|role is open)\b/i;
@@ -306,7 +307,7 @@ export class ScanEvidence {
     if (pending.length && ["none_found", "closed", "upcoming", "blocked"].includes(verdict.status)) {
       problems.push(`Promising apprenticeship candidates remain unread or blocked: ${pending.map((c) => c.url).join(", ")}`);
     }
-    if (["none_found", "closed", "upcoming", "blocked"].includes(verdict.status)) {
+    if (["none_found", "closed", "not_opening", "upcoming", "blocked"].includes(verdict.status)) {
       const live = this.pages.filter((page) => page.successful && this.isTrustedEmployerPage(page) &&
         isIndividualVacancy(page, `${page.page.title} ${page.page.text.slice(0, 2000)}`) &&
         !closedVacancyPattern.test(page.page.text) && !isExpiredVacancy(page, this.now) &&
@@ -342,6 +343,14 @@ export class ScanEvidence {
         return !!p && this.isTrustedEmployerPage(p) && isPromisingCandidate(`${p.page.title} ${p.page.text}`) && statusConcernsApprenticeship(p, e.quote) && explicitClosedPattern.test(e.quote) && !/closing date|deadline|closes? on|apply by/i.test(e.quote);
       });
       if (!explicit) problems.push("closed requires a source-bound statement that apprenticeship applications are closed or the scheme is full; a deadline or typical calendar is not enough.");
+    }
+
+    if (verdict.status === "not_opening") {
+      const explicit = verdict.evidence.some((e) => {
+        const p = this.pageFor(e.url);
+        return !!p && this.isTrustedEmployerPage(p) && isPromisingCandidate(`${p.page.title} ${p.page.text}`) && statusConcernsApprenticeship(p, e.quote) && explicitNoIntakePattern.test(e.quote);
+      });
+      if (!explicit) problems.push("not_opening requires a source-bound statement from the employer that it will not run or recruit for this apprenticeship intake.");
     }
 
     if (verdict.status === "upcoming") {

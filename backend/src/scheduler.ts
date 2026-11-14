@@ -39,6 +39,7 @@ export function buildSummary(before: Map<number, Snapshot>, after: Company[], mi
   const newListings: string[] = [];
   const newUpcoming: string[] = [];
   const noLongerOpen: string[] = [];
+  const notOpening: string[] = [];
   const open: string[] = [];
   const needsRecheck: string[] = [];
   let upcoming = 0;
@@ -65,9 +66,10 @@ export function buildSummary(before: Map<number, Snapshot>, after: Company[], mi
         newListings.push(`${c.name}: ${fresh.map(fmt).join("; ")}`);
         firstNewUrl ??= fresh[0].url;
       }
-    } else if (prev?.status === "open" && ["closed", "none", "upcoming"].includes(c.status)) {
+    } else if (prev?.status === "open" && ["closed", "not_opening", "none", "upcoming"].includes(c.status)) {
       noLongerOpen.push(`${c.name} (now ${c.status})`);
     }
+    if (c.status === "not_opening" && prev?.status !== "not_opening") notOpening.push(c.name);
     if (c.status === "upcoming") {
       upcoming++;
       if (prev?.status !== "upcoming") newUpcoming.push(c.name);
@@ -83,6 +85,7 @@ export function buildSummary(before: Map<number, Snapshot>, after: Company[], mi
   section(`🆕 NEW LISTINGS (${newListings.length})`, newListings);
   section(`⏳ NEWLY OPENING SOON (${newUpcoming.length})`, newUpcoming);
   section(`🚪 NO LONGER OPEN (${noLongerOpen.length})`, noLongerOpen);
+  section(`⏸️ NOT OPENING THIS INTAKE (${notOpening.length})`, notOpening);
   section(`⚠️ NEEDS RECHECK (${needsRecheck.length})`, needsRecheck);
   lines.push("", `Open now (${open.length}): ${open.join(", ") || "none"}`);
   if (upcoming) lines.push(`Opening soon: ${upcoming}`);
@@ -134,8 +137,17 @@ export async function runDailyScan(trigger: "schedule" | "manual"): Promise<void
       return;
     }
 
-    const companies = await prisma.company.findMany({ orderBy: { name: "asc" } });
+    const allCompanies = await prisma.company.findMany({ orderBy: { name: "asc" } });
+    const companies = trigger === "schedule"
+      ? allCompanies.filter((company) => !company.scanDeferredUntil || company.scanDeferredUntil <= new Date())
+      : allCompanies;
     jobState.total = companies.length;
+    if (!companies.length) {
+      const result = `No companies due; ${allCompanies.length} are waiting for their no-intake recheck.`;
+      await prisma.settings.update({ where: { id: 1 }, data: { lastDailyRunResult: result } });
+      log.info({ trigger, deferred: allCompanies.length }, result);
+      return;
+    }
     const before = new Map(companies.map((c) => [c.id, snapshot(c)]));
     log.info({ trigger, companies: companies.length }, "Scan starting");
 
@@ -148,7 +160,7 @@ export async function runDailyScan(trigger: "schedule" | "manual"): Promise<void
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, companies.length) }, worker));
 
-    const after = await prisma.company.findMany({ orderBy: { name: "asc" } });
+    const after = await prisma.company.findMany({ where: { id: { in: companies.map(({ id }) => id) } }, orderBy: { name: "asc" } });
     const summary = buildSummary(before, after, Math.round((Date.now() - started) / 60_000));
     const notifyError = await notify(summary);
     await prisma.settings.update({
@@ -196,20 +208,26 @@ const todayAt = (time: string, from = new Date()) => {
 };
 
 /**
- * The next daily slot, or "now" if one has been missed (e.g. the server was off at 07:00).
+ * The next scan slot, or "now" if one has been missed (e.g. the server was off).
  * Slots before the schedule was last configured, or before the last run, never count.
  */
-function nextSlot(enabled: boolean, time: string, lastAt: Date | null, scheduleSetAt: Date, now: Date): Date | null {
+function nextSlot(enabled: boolean, time: string, intervalDays: number, lastAt: Date | null, scheduleSetAt: Date, now: Date): Date | null {
   if (!enabled) return null;
   const after = Math.max(lastAt?.getTime() ?? 0, scheduleSetAt.getTime());
-  let slot = todayAt(time, now);
-  if (slot.getTime() <= after) slot = new Date(slot.getTime() + 24 * 60 * 60 * 1000);
+  const target = new Date(after);
+  target.setDate(target.getDate() + intervalDays);
+  let slot = todayAt(time, target);
+  if (slot.getTime() <= after) {
+    target.setDate(target.getDate() + 1);
+    slot = todayAt(time, target);
+  }
   return slot <= now ? now : slot;
 }
 
 type ScheduleSettings = {
   dailyScanEnabled: boolean;
   dailyScanTime: string;
+  scanIntervalDays: number;
   lastDailyRunAt: Date | null;
   scheduleSetAt: Date;
   closingRemindersEnabled: boolean;
@@ -217,11 +235,11 @@ type ScheduleSettings = {
 };
 
 export const nextRunAt = (s: ScheduleSettings, now = new Date()) =>
-  nextSlot(s.dailyScanEnabled, s.dailyScanTime, s.lastDailyRunAt, s.scheduleSetAt, now);
+  nextSlot(s.dailyScanEnabled, s.dailyScanTime, s.scanIntervalDays, s.lastDailyRunAt, s.scheduleSetAt, now);
 
 /** Reminders go out at the same time of day as the scan, but don't depend on it. */
 export const nextReminderAt = (s: ScheduleSettings, now = new Date()) =>
-  nextSlot(s.closingRemindersEnabled, s.dailyScanTime, s.lastRemindersAt, s.scheduleSetAt, now);
+  nextSlot(s.closingRemindersEnabled, s.dailyScanTime, 1, s.lastRemindersAt, s.scheduleSetAt, now);
 
 // ---------------------------------------------------------------------------
 // Closing-date reminders
@@ -306,5 +324,5 @@ export async function startScheduler() {
   setInterval(tick, 60_000);
   // Catch up shortly after startup if today's run was missed.
   setTimeout(tick, 15_000);
-  log.info("Daily scan scheduler started");
+  log.info("Automatic scan scheduler started");
 }

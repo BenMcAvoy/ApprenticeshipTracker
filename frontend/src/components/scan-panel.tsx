@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type ScanStage = "search" | "browse" | "gov" | "verify" | "done";
-export type ResultStatus = "open" | "upcoming" | "closed" | "none" | "unclear" | "error";
+export type ResultStatus = "open" | "upcoming" | "closed" | "not_opening" | "none" | "unclear" | "error";
 
 export type ScanEventView = {
   stage: ScanStage;
@@ -51,6 +51,7 @@ const RESULT: Record<ResultStatus, { label: string; variant: "default" | "second
   open: { label: "Open", variant: "default" },
   upcoming: { label: "Opening soon", variant: "default" },
   closed: { label: "Closed", variant: "secondary" },
+  not_opening: { label: "No intake", variant: "secondary" },
   none: { label: "No roles", variant: "secondary" },
   unclear: { label: "Unclear", variant: "outline" },
   error: { label: "Error", variant: "destructive" },
