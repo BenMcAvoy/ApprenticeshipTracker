@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { listingKey } from "backend/listing-key";
 import { CompanyCard } from "@/components/company-card";
 import { ExportDialog } from "@/components/export-dialog";
@@ -29,6 +29,13 @@ export const Route = createFileRoute("/")({
     sort: typeof search.sort === "string" ? search.sort : undefined,
     soon: search.soon === true || search.soon === "true" ? true : undefined,
     showApplied: search.showApplied === true || search.showApplied === "true" ? true : undefined,
+    location: typeof search.location === "string" ? search.location : undefined,
+    startYear: typeof search.startYear === "number" ? search.startYear : undefined,
+    salaryMin: typeof search.salaryMin === "number" ? search.salaryMin : undefined,
+    salaryMax: typeof search.salaryMax === "number" ? search.salaryMax : undefined,
+    routes: typeof search.routes === "string" ? search.routes.split("|").filter(Boolean) : Array.isArray(search.routes) ? search.routes.filter((item): item is string => typeof item === "string") : undefined,
+    levels: typeof search.levels === "string" ? search.levels.split("|").map(Number).filter(Number.isFinite) : Array.isArray(search.levels) ? search.levels.map(Number).filter(Number.isFinite) : undefined,
+    page: typeof search.page === "number" ? Math.max(1, search.page) : undefined,
   }),
   beforeLoad: ({ search }) => { if (search.showApplied) throw redirect({ to: "/applications" }); },
 });
@@ -39,9 +46,33 @@ function Home() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const filters = { ...filtersFromSearch(search), showApplied: false };
-  const setFilters = (next: Filters) => void navigate({ search: searchFromFilters(next), replace: true });
+  const setFilters = (next: Filters) => {
+    const page = next.page === filters.page ? 1 : next.page;
+    void navigate({ search: searchFromFilters({ ...next, page }), replace: true });
+  };
   const trpc = useTRPC();
-  const feed = useQuery(trpc.vacancies.list.queryOptions());
+  const routeKey = filters.routes.join("\u0000");
+  const levelKey = filters.levels.join("\u0000");
+  const requestInput = useMemo(() => ({
+    q: filters.q,
+    location: filters.location,
+    routes: routeKey ? routeKey.split("\u0000") : [],
+    courseLevels: levelKey ? levelKey.split("\u0000").map(Number) : [],
+    salaryMin: filters.salaryMin,
+    salaryMax: filters.salaryMax,
+    startYear: filters.startYear,
+    sort: filters.sort,
+    page: filters.page,
+  }), [filters.q, filters.location, routeKey, levelKey, filters.salaryMin, filters.salaryMax, filters.startYear, filters.sort, filters.page]);
+  const [liveSearch, setLiveSearch] = useState(requestInput);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLiveSearch(requestInput), 350);
+    return () => window.clearTimeout(timer);
+  }, [requestInput]);
+  const feed = useQuery(trpc.vacancies.search.queryOptions(liveSearch, {
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
+  }));
   const sourceCompanies = feed.data?.companies ?? [];
   const personalList = applyAppliedVisibility(sourceCompanies, applied.data ?? [], false);
   const visible = applyFilters(personalList, filters);
@@ -69,10 +100,11 @@ function Home() {
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <p>
           Vacancies from <a className="underline underline-offset-2" href="https://www.theapprenticeguide.net/apprenticeships?routes=Digital&levels=6-7&salaryMin=20000&startYear=2027" target="_blank" rel="noreferrer">The Apprentice Guide</a>
-          {` · ${feed.data.total} roles`}
+          {` · ${feed.data.total} roles`}{feed.data.live ? " · live" : " · saved snapshot"}
         </p>
-        <p>Imported {new Date(feed.data.fetchedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</p>
+        <p>{feed.isFetching ? "Updating… · " : "Updated "}{new Date(feed.data.fetchedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</p>
       </div>
+      {feed.data.liveError && <p role="status" className="text-xs text-muted-foreground">TAG live results are unavailable: {feed.data.liveError} Showing the saved snapshot.</p>}
 
       {mark.isError && <p role="alert" className="text-sm text-destructive">{mark.error.message}</p>}
       {lastMarked && (
@@ -82,27 +114,27 @@ function Home() {
         </div>
       )}
 
-      {sourceCompanies.length > 0 && <FilterBar filters={filters} onChange={setFilters} shown={visible.length} total={sourceCompanies.length} listings={visible.reduce((total, c) => total + listingsOf(c).length, 0)} />}
-      {sourceCompanies.length > 0 && visible.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-12 text-center text-sm text-muted-foreground">
-          <p>{!personalList.length ? "All vacancies marked as applied." : "No matches."}</p>
-          <Button variant="outline" size="sm" onClick={() => setFilters(DEFAULT_FILTERS)}>Reset filters</Button>
-          {!personalList.length && <Button variant="link" render={<Link to="/applications" />}>View applications</Button>}
-        </div>
-      )}
-      {!sourceCompanies.length && <p className="text-sm text-muted-foreground">No vacancies are available in this feed.</p>}
-      <MasonryGrid>
-        {visible.map((company) => (
-          <CompanyCard
-            key={company.id}
-            company={company}
-            appliedKeys={appliedKeys.get(company.id) ?? new Set()}
-            onAppliedChange={(listing, value) => markListing(company.id, listing, value)}
-            marking={mark.isPending}
-            savingKey={mark.isPending && mark.variables?.companyId === company.id ? mark.variables.listingKey : undefined}
-          />
-        ))}
-      </MasonryGrid>
+      {feed.data && <FilterBar filters={filters} onChange={setFilters} shown={visible.length} total={feed.data.total} listings={visible.reduce((total, c) => total + listingsOf(c).length, 0)} page={feed.data.page} totalPages={feed.data.totalPages} onPageChange={(page) => setFilters({ ...filters, page })}>
+        {visible.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-12 text-center text-sm text-muted-foreground">
+            <p>{!sourceCompanies.length ? "No vacancies match these filters." : !personalList.length ? "All vacancies marked as applied." : "No matches."}</p>
+            <Button variant="outline" size="sm" onClick={() => setFilters(DEFAULT_FILTERS)}>Reset filters</Button>
+            {!personalList.length && <Button variant="link" render={<Link to="/applications" />}>View applications</Button>}
+          </div>
+        )}
+        <MasonryGrid>
+          {visible.map((company) => (
+            <CompanyCard
+              key={company.id}
+              company={company}
+              appliedKeys={appliedKeys.get(company.id) ?? new Set()}
+              onAppliedChange={(listing, value) => markListing(company.id, listing, value)}
+              marking={mark.isPending}
+              savingKey={mark.isPending && mark.variables?.companyId === company.id ? mark.variables.listingKey : undefined}
+            />
+          ))}
+        </MasonryGrid>
+      </FilterBar>}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { getFirebaseConfig, isAuthConfigured } from "./auth.ts";
 import { listingKey } from "./listing-key.ts";
 import { adminAIProcedure, adminProcedure, aiProcedure, publicProcedure, router, userProcedure } from "./trpc.ts";
 import { listVacancyCompanies } from "./vacancies.ts";
+import { isTagConfigured, searchTagVacancies } from "./tag-api.ts";
 
 export const appRouter = router({
   ping: publicProcedure.query(async ({ ctx }) => {
@@ -31,6 +32,37 @@ export const appRouter = router({
 
   vacancies: router({
     list: userProcedure.query(() => listVacancyCompanies()),
+    search: userProcedure
+      .input(z.object({
+        q: z.string().max(150).default(""),
+        location: z.string().max(100).default(""),
+        routes: z.array(z.string().min(1).max(80)).max(30).default([]),
+        courseLevels: z.array(z.number().int().min(1).max(10)).max(10).default([]),
+        salaryMin: z.number().int().min(0).nullable().default(null),
+        salaryMax: z.number().int().min(0).nullable().default(null),
+        startYear: z.number().int().min(2020).max(2040).nullable().default(null),
+        sort: z.enum(["recent", "closing", "quality"]).default("recent"),
+        page: z.number().int().min(1).max(10000).default(1),
+      }))
+      .query(async ({ input }) => {
+        if (!isTagConfigured()) {
+          const snapshot = await listVacancyCompanies();
+          return { ...snapshot, page: 1, totalPages: 1, pageSize: snapshot.total, live: false };
+        }
+        try {
+          return await searchTagVacancies(input);
+        } catch (error) {
+          const snapshot = await listVacancyCompanies();
+          return {
+            ...snapshot,
+            page: 1,
+            totalPages: 1,
+            pageSize: snapshot.total,
+            live: false,
+            liveError: error instanceof Error ? error.message : "The TAG feed could not be reached.",
+          };
+        }
+      }),
   }),
 
   profile: router({

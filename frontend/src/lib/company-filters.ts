@@ -9,25 +9,32 @@ export const STATUS_LABEL: Record<Status, string> = {
   open: "Open",
 };
 
-export const SORTS = ["recent", "closing", "name"] as const;
+export const SORTS = ["recent", "closing", "quality"] as const;
 export type Sort = (typeof SORTS)[number];
 
 export const SORT_LABEL: Record<Sort, string> = {
-  recent: "Recently posted",
+  recent: "Most recent",
   closing: "Closing soonest",
-  name: "Name (A–Z)",
+  quality: "Best match",
 };
 
 export type Filters = {
   q: string;
   sort: Sort;
+  location: string;
+  startYear: number | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  routes: string[];
+  levels: number[];
+  page: number;
   /** Only companies with a listing closing within CLOSING_SOON_DAYS. */
   soon: boolean;
   showApplied: boolean;
 };
 
 export const CLOSING_SOON_DAYS = 14;
-export const DEFAULT_FILTERS: Filters = { q: "", sort: "recent", soon: false, showApplied: false };
+export const DEFAULT_FILTERS: Filters = { q: "", sort: "recent", location: "", startYear: 2027, salaryMin: 20000, salaryMax: null, routes: ["Digital"], levels: [6, 7], page: 1, soon: false, showApplied: false };
 
 export type Listing = {
   title: string;
@@ -117,25 +124,41 @@ const mostRecentPost = (c: CompanyRow) => Math.max(0, ...listingsOf(c).map((l) =
 
 export function applyFilters(companies: CompanyRow[], f: Filters, now = Date.now()): CompanyRow[] {
   const q = f.q.trim().toLowerCase();
+  const location = f.location.trim().toLowerCase();
   const soonLimit = now + CLOSING_SOON_DAYS * 24 * 60 * 60 * 1000;
 
-  const matches = companies.filter((c) => {
-    if (f.soon) {
-      const closing = nextClosing(c, now);
-      if (closing === null || closing > soonLimit) return false;
-    }
+  const matches = companies.flatMap((c) => {
+    let listings = listingsOf(c);
+    if (f.routes.length) listings = listings.filter((l) => Boolean(l.courseRoute && f.routes.includes(l.courseRoute)));
+    if (f.levels.length) listings = listings.filter((l) => typeof l.courseLevel === "number" && f.levels.includes(l.courseLevel));
+    if (f.startYear !== null) listings = listings.filter((l) => Boolean(l.startDate && new Date(l.startDate).getFullYear() === f.startYear));
+    if (location) listings = listings.filter((l) => `${l.location ?? ""} ${l.postcode ?? ""}`.toLowerCase().includes(location));
+    if (f.salaryMin !== null || f.salaryMax !== null) listings = listings.filter((l) => {
+      const salaryText = l.salary ?? "";
+      const amount = Number(salaryText.match(/[\d,]+(?:\.\d+)?/)?.[0]?.replace(/,/g, "") ?? "");
+      if (!Number.isFinite(amount) || amount <= 0) return false;
+      const annual = /\b(hour|hr|week|weekly)\b/i.test(salaryText) ? amount * 37.5 * 52 : amount;
+      return (f.salaryMin === null || annual >= f.salaryMin) && (f.salaryMax === null || annual <= f.salaryMax);
+    });
     if (q) {
-      const haystack = [c.name, c.summary ?? "", ...listingsOf(c).flatMap((l) => [l.title, l.location ?? ""])].join(" ").toLowerCase();
-      if (!q.split(/\s+/).every((word) => haystack.includes(word))) return false;
+      const companyText = `${c.name} ${c.summary ?? ""}`.toLowerCase();
+      const companyMatches = q.split(/\s+/).every((word) => companyText.includes(word));
+      if (!companyMatches) listings = listings.filter((l) => q.split(/\s+/).every((word) => `${l.title} ${l.location ?? ""}`.toLowerCase().includes(word)));
     }
-    return true;
+    if (!listings.length) return [];
+    const result = { ...c, listings: JSON.stringify(listings) };
+    if (f.soon) {
+      const closing = nextClosing(result, now);
+      if (closing === null || closing > soonLimit) return [];
+    }
+    return [result];
   });
 
   const byName = (a: CompanyRow, b: CompanyRow) => a.name.localeCompare(b.name);
   return matches.sort((a, b) => {
     switch (f.sort) {
-      case "name":
-        return byName(a, b);
+      case "quality":
+        return 0;
       case "closing": {
         const x = nextClosing(a, now) ?? Infinity;
         const y = nextClosing(b, now) ?? Infinity;
@@ -147,15 +170,22 @@ export function applyFilters(companies: CompanyRow[], f: Filters, now = Date.now
   });
 }
 
-export const isFiltered = (f: Filters) => f.q.trim() !== "" || f.soon || f.showApplied || f.sort !== DEFAULT_FILTERS.sort;
+export const isFiltered = (f: Filters) => f.q.trim() !== "" || f.location.trim() !== "" || f.startYear !== DEFAULT_FILTERS.startYear || f.salaryMin !== DEFAULT_FILTERS.salaryMin || f.salaryMax !== DEFAULT_FILTERS.salaryMax || f.routes.join("|") !== DEFAULT_FILTERS.routes.join("|") || f.levels.join("|") !== DEFAULT_FILTERS.levels.join("|") || f.page !== DEFAULT_FILTERS.page || f.soon || f.showApplied || f.sort !== DEFAULT_FILTERS.sort;
 
 // URL <-> filters
-export type FilterSearch = { q?: string; sort?: string; soon?: boolean; showApplied?: boolean };
+export type FilterSearch = { q?: string; sort?: string; soon?: boolean; showApplied?: boolean; location?: string; startYear?: number; salaryMin?: number; salaryMax?: number; routes?: string[]; levels?: number[]; page?: number };
 
 export function filtersFromSearch(s: FilterSearch): Filters {
   return {
     q: s.q ?? "",
     sort: (SORTS as readonly string[]).includes(s.sort ?? "") ? (s.sort as Sort) : DEFAULT_FILTERS.sort,
+    location: s.location ?? DEFAULT_FILTERS.location,
+    startYear: s.startYear ?? DEFAULT_FILTERS.startYear,
+    salaryMin: s.salaryMin ?? DEFAULT_FILTERS.salaryMin,
+    salaryMax: s.salaryMax ?? DEFAULT_FILTERS.salaryMax,
+    routes: s.routes ?? DEFAULT_FILTERS.routes,
+    levels: s.levels ?? DEFAULT_FILTERS.levels,
+    page: s.page ?? DEFAULT_FILTERS.page,
     soon: s.soon === true,
     showApplied: s.showApplied === true,
   };
@@ -165,6 +195,13 @@ export function filtersFromSearch(s: FilterSearch): Filters {
 export function searchFromFilters(f: Filters): FilterSearch {
   return {
     q: f.q || undefined,
+    location: f.location || undefined,
+    startYear: f.startYear === DEFAULT_FILTERS.startYear ? undefined : f.startYear ?? undefined,
+    salaryMin: f.salaryMin === DEFAULT_FILTERS.salaryMin ? undefined : f.salaryMin ?? undefined,
+    salaryMax: f.salaryMax ?? undefined,
+    routes: f.routes.join("|") === DEFAULT_FILTERS.routes.join("|") ? undefined : f.routes,
+    levels: f.levels.join("|") === DEFAULT_FILTERS.levels.join("|") ? undefined : f.levels,
+    page: f.page === DEFAULT_FILTERS.page ? undefined : f.page,
     sort: f.sort !== DEFAULT_FILTERS.sort ? f.sort : undefined,
     soon: f.soon || undefined,
     showApplied: f.showApplied || undefined,

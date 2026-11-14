@@ -23,6 +23,8 @@ services:
       FIREBASE_APP_ID: ${FIREBASE_APP_ID:-}
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-}
       LEGACY_OWNER_EMAIL: ${LEGACY_OWNER_EMAIL:-}
+      TAG_SESSION_COOKIE: ${TAG_SESSION_COOKIE:-}
+      TAG_SESSION_COOKIE_FILE: /data/tag-session-cookie
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
       - data:/data
