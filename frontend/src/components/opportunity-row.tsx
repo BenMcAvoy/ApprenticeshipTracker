@@ -12,6 +12,10 @@ export function OpportunityRow({ listing, applied, saving, marking, canTailor, t
   const deadline = listingClosing(listing);
   const closing = deadline.text.replace(/TODAY|TOMORROW/g, (word) => word.toLowerCase());
   const deadlineTone = cn(deadline.tone === "urgent" && "font-medium text-destructive", deadline.tone === "warn" && "text-amber-700 dark:text-amber-400");
+  const startDate = listing.startDate && !Number.isNaN(Date.parse(listing.startDate))
+    ? new Date(listing.startDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : undefined;
+  const level = listing.apprenticeshipLevel || (listing.courseLevel ? `Level ${listing.courseLevel}` : undefined);
 
   return (
     <li className="flex min-w-0 flex-col gap-2 py-3 first:pt-0 last:pb-0">
@@ -25,7 +29,7 @@ export function OpportunityRow({ listing, applied, saving, marking, canTailor, t
           <p className="break-words font-medium leading-snug">{listing.title}</p>
         )}
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          {[listing.location, <span key="deadline" className={deadlineTone}>{closing.charAt(0).toUpperCase() + closing.slice(1)}</span>]
+          {[listing.location, listing.salary, level, listing.hoursPerWeek && `${listing.hoursPerWeek} hours/week`, listing.remoteType, listing.positions && `${listing.positions} position${listing.positions === 1 ? "" : "s"}`, startDate && `Starts ${startDate}`, <span key="deadline" className={deadlineTone}>{closing.charAt(0).toUpperCase() + closing.slice(1)}</span>]
             .filter(Boolean)
             .map((part, index) => (
               <span key={index}>
@@ -34,8 +38,8 @@ export function OpportunityRow({ listing, applied, saving, marking, canTailor, t
               </span>
             ))}
         </p>
+        {listing.description && <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">{listing.description}</p>}
       </div>
-      {listing.needsRecheck && <p className="text-xs text-amber-700 dark:text-amber-400">Needs recheck</p>}
       {applied && <Badge variant="secondary" className="w-fit"><Check className="size-3" /> Applied</Badge>}
       <div className="flex flex-wrap items-center gap-2">
         {canTailor && listing.url && (

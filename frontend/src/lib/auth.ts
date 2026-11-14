@@ -24,7 +24,7 @@ export function initializeAuth(): Promise<Auth | null> {
   return initialization ??= (async () => {
     const config = await publicQuery<FirebaseConfig>("auth.config");
     if (!config || ![config.apiKey, config.authDomain, config.projectId, config.appId].every((value) => typeof value === "string" && value.trim())) return null;
-    const auth = getAuth(initializeApp(config, "scanner-auth"));
+    const auth = getAuth(initializeApp(config, "apprenticeship-tracker-auth"));
     await setPersistence(auth, browserLocalPersistence);
     await auth.authStateReady();
     return auth;

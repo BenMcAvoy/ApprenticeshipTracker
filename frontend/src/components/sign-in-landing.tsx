@@ -1,4 +1,4 @@
-import { Loader2, Radar } from "lucide-react";
+import { GraduationCap, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/components/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -20,7 +20,7 @@ export function SignInLanding() {
   return (
     <div className="flex min-h-svh flex-col bg-background">
       <header className="flex h-14 items-center justify-between px-6">
-        <span className="flex items-center gap-2 text-sm font-semibold"><Radar className="size-4" /> Apprentice Scanner</span>
+        <span className="flex items-center gap-2 text-sm font-semibold"><GraduationCap className="size-4" /> Apprenticeship Tracker</span>
         <ThemeToggle />
       </header>
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 pb-24">

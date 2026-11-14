@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { observeAuth, resolveAuthUser, signIn as googleSignIn, signOut as googleSignOut, type AuthUser } from "@/lib/auth";
-import { closeAuthSubscriptions, queryClient } from "@/lib/trpc";
+import { queryClient } from "@/lib/trpc";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -14,7 +14,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const message = (error: unknown) => error instanceof Error ? error.message : "Authentication failed.";
 
 function clearPrivateData() {
-  closeAuthSubscriptions();
   void queryClient.cancelQueries();
   queryClient.clear();
 }

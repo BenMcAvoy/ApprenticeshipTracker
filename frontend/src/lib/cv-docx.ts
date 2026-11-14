@@ -126,7 +126,7 @@ export async function buildCvDocx(markdown: string): Promise<Blob> {
   });
 
   const doc = new Document({
-    creator: "Apprentice Scanner",
+    creator: "Apprenticeship Tracker",
     styles: { default: { document: { run: { font: FONT, size: 21 } } } },
     sections: [{ properties: { page: { size: A4, margin: { top: 850, bottom: 850, left: 1000, right: 1000 } } }, children }],
   });
@@ -149,7 +149,7 @@ export async function buildLetterDocx(letter: string): Promise<Blob> {
         }),
     );
   const doc = new Document({
-    creator: "Apprentice Scanner",
+    creator: "Apprenticeship Tracker",
     styles: { default: { document: { run: { font: FONT, size: 22 } } } },
     sections: [{ properties: { page: { size: A4, margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } }, children: paragraphs }],
   });

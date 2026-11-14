@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, ClipboardList, Radar } from "lucide-react";
+import { Home, ClipboardList, GraduationCap } from "lucide-react";
 import { AccountMenu } from "@/components/account-menu";
 import {
   Sidebar,
@@ -25,9 +25,9 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link to="/" onClick={closeMobile} />}>
               <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Radar className="size-4" />
+                <GraduationCap className="size-4" />
               </div>
-              <span className="font-semibold">Apprentice Scanner</span>
+              <span className="font-semibold">Apprenticeship Tracker</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

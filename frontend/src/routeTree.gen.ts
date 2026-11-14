@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApplicationsRouteImport } from './routes/applications'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ManualScanAuthorizeRouteImport } from './routes/manual-scan.authorize'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,45 +28,36 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ManualScanAuthorizeRoute = ManualScanAuthorizeRouteImport.update({
-  id: '/manual-scan/authorize',
-  path: '/manual-scan/authorize',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/applications': typeof ApplicationsRoute
   '/settings': typeof SettingsRoute
-  '/manual-scan/authorize': typeof ManualScanAuthorizeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/applications': typeof ApplicationsRoute
   '/settings': typeof SettingsRoute
-  '/manual-scan/authorize': typeof ManualScanAuthorizeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/applications': typeof ApplicationsRoute
   '/settings': typeof SettingsRoute
-  '/manual-scan/authorize': typeof ManualScanAuthorizeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/applications' | '/settings' | '/manual-scan/authorize'
+  fullPaths: '/' | '/applications' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/applications' | '/settings' | '/manual-scan/authorize'
+  to: '/' | '/applications' | '/settings'
   id:
-    '__root__' | '/' | '/applications' | '/settings' | '/manual-scan/authorize'
+    '__root__' | '/' | '/applications' | '/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApplicationsRoute: typeof ApplicationsRoute
   SettingsRoute: typeof SettingsRoute
-  ManualScanAuthorizeRoute: typeof ManualScanAuthorizeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -93,13 +83,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/manual-scan/authorize': {
-      id: '/manual-scan/authorize'
-      path: '/manual-scan/authorize'
-      fullPath: '/manual-scan/authorize'
-      preLoaderRoute: typeof ManualScanAuthorizeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -107,7 +90,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApplicationsRoute: ApplicationsRoute,
   SettingsRoute: SettingsRoute,
-  ManualScanAuthorizeRoute: ManualScanAuthorizeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,5 +1,5 @@
-# Backend: tRPC API + SQLite + the scan agent (headless Chromium via Playwright).
-# The Playwright image ships Chromium and its system libraries; keep the tag in step with the `playwright` npm version.
+# Backend: tRPC API + SQLite + application/CV tools.
+# Keep the Playwright image tag in step with the `playwright` npm version used by page reading tools.
 # Build context is the repository root (see docker-compose.yml).
 FROM mcr.microsoft.com/playwright:v1.64.1-noble
 
@@ -14,6 +14,7 @@ RUN npm ci -w backend --include-workspace-root
 
 COPY backend backend
 RUN cd backend && npx prisma generate
+RUN npm run build -w backend
 
 WORKDIR /app/backend
 COPY backend/docker-entrypoint.sh /docker-entrypoint.sh

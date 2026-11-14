@@ -35,5 +35,3 @@ const requireAI = t.middleware(async ({ next }) => {
 
 export const aiProcedure = userProcedure.use(requireAI);
 export const adminAIProcedure = adminProcedure.use(requireAI);
-export const manualScanProcedure = adminProcedure;
-export const manualScanAIProcedure = adminAIProcedure;

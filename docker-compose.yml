@@ -1,4 +1,4 @@
-# Apprentice Scanner
+# Apprenticeship Tracker
 #
 #   docker compose up -d --build        then open http://localhost:8080
 #
@@ -15,7 +15,6 @@ services:
     init: true # reap Chromium's child processes
     shm_size: 1gb # Chromium needs more than Docker's 64 MB default /dev/shm
     environment:
-      # The daily scan and closing alerts run at the time you set in Settings, in this time zone.
       TZ: ${TZ:-Europe/London}
       NODE_ENV: production
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
