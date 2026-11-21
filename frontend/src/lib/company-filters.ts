@@ -56,6 +56,23 @@ export type Listing = {
   sourceId?: string;
 };
 
+/** Short sector labels used by the UI mapped to TAG's exact route names. */
+export const TAG_ROUTE_NAMES: Record<string, string> = {
+  Business: "Business and administration",
+  Construction: "Construction and the built environment",
+  Engineering: "Engineering and manufacturing",
+  Hospitality: "Catering and hospitality",
+  "Sales and marketing": "Sales, marketing and procurement",
+  "Legal and finance": "Legal, finance and accounting",
+  Care: "Care services",
+  Transport: "Transport and logistics",
+  Agriculture: "Agriculture, environmental and animal care",
+  Creative: "Creative and design",
+  Protective: "Protective services",
+};
+
+export const tagRouteName = (route: string) => TAG_ROUTE_NAMES[route] ?? route;
+
 export const listingsOf = (c: CompanyRow): Listing[] => {
   try {
     const listings: unknown = JSON.parse(c.listings);
@@ -129,7 +146,7 @@ export function applyFilters(companies: CompanyRow[], f: Filters, now = Date.now
 
   const matches = companies.flatMap((c) => {
     let listings = listingsOf(c);
-    if (f.routes.length) listings = listings.filter((l) => Boolean(l.courseRoute && f.routes.includes(l.courseRoute)));
+    if (f.routes.length) listings = listings.filter((l) => Boolean(l.courseRoute && f.routes.some((route) => tagRouteName(route) === l.courseRoute)));
     if (f.levels.length) listings = listings.filter((l) => typeof l.courseLevel === "number" && f.levels.includes(l.courseLevel));
     if (f.startYear !== null) listings = listings.filter((l) => Boolean(l.startDate && new Date(l.startDate).getFullYear() === f.startYear));
     if (location) listings = listings.filter((l) => `${l.location ?? ""} ${l.postcode ?? ""}`.toLowerCase().includes(location));

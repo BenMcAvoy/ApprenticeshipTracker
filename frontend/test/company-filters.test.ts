@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { listingKey } from "backend/listing-key";
 import type { CompanyRow } from "../src/components/company-card.tsx";
-import { applyAppliedVisibility, applyFilters, DEFAULT_FILTERS, filtersFromSearch, listingsOf, nextClosing, searchFromFilters } from "../src/lib/company-filters.ts";
+import { applyAppliedVisibility, applyFilters, DEFAULT_FILTERS, filtersFromSearch, listingsOf, nextClosing, searchFromFilters, tagRouteName } from "../src/lib/company-filters.ts";
 import { buildExport } from "../src/lib/export-list.ts";
 
 const hidden = { title: "Software apprentice", url: "https://careers.example/jobs/1", location: "London", closes: "2026-10-27" };
@@ -62,10 +62,37 @@ test("removed applied roles use their saved snapshot in Applied and do not leak 
 test("Applied search and exports use only the marked roles", () => {
   const applied = applyAppliedVisibility([company(1), company(2)], [mark(1)], true);
   assert.deepEqual(applyFilters(applied, { ...DEFAULT_FILTERS, showApplied: true, q: "Bristol" }), []);
-  const exported = buildExport(applyFilters(applied, { ...DEFAULT_FILTERS, showApplied: true }), true);
+  const exported = buildExport(applyFilters(applied, { ...DEFAULT_FILTERS, showApplied: true, routes: [], levels: [], startYear: null }), true);
   assert.equal(exported.links, 1);
   assert.ok(exported.text.includes(hidden.url));
   assert.ok(!exported.text.includes(fresh.url));
+});
+
+test("every sector label maps to a TAG route and its results survive local filtering", () => {
+  const routes = [
+    ["Education and early years", "Education and early years"],
+    ["Health and science", "Health and science"],
+    ["Business", "Business and administration"],
+    ["Engineering", "Engineering and manufacturing"],
+    ["Construction", "Construction and the built environment"],
+    ["Digital", "Digital"],
+    ["Hospitality", "Catering and hospitality"],
+    ["Sales and marketing", "Sales, marketing and procurement"],
+    ["Legal and finance", "Legal, finance and accounting"],
+    ["Care", "Care services"],
+    ["Agriculture", "Agriculture, environmental and animal care"],
+    ["Transport", "Transport and logistics"],
+    ["Creative", "Creative and design"],
+    ["Hair and beauty", "Hair and beauty"],
+    ["Protective", "Protective services"],
+  ] as const;
+
+  for (const [label, route] of routes) {
+    assert.equal(tagRouteName(label), route, `${label} should use TAG's route name`);
+    const listing = { title: `${label} apprentice`, courseRoute: route, courseLevel: 6, startDate: "2027-09-06" };
+    const filters = { ...DEFAULT_FILTERS, routes: [label], levels: [], startYear: null };
+    assert.equal(applyFilters([company(3, [listing])], filters).length, 1, `${label} listings should pass local filtering`);
+  }
 });
 
 test("hidden listing titles, locations and deadlines cannot affect search or closing-soon filters", () => {

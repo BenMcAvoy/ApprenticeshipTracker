@@ -18,6 +18,7 @@ import {
   type Filters,
   filtersFromSearch,
   searchFromFilters,
+  tagRouteName,
 } from "@/lib/company-filters";
 import { useTRPC } from "@/lib/trpc";
 import { useAppliedListings } from "@/hooks/use-applied-listings";
@@ -56,7 +57,7 @@ function Home() {
   const requestInput = useMemo(() => ({
     q: filters.q,
     location: filters.location,
-    routes: routeKey ? routeKey.split("\u0000") : [],
+    routes: routeKey ? routeKey.split("\u0000").map(tagRouteName) : [],
     courseLevels: levelKey ? levelKey.split("\u0000").map(Number) : [],
     salaryMin: filters.salaryMin,
     salaryMax: filters.salaryMax,
